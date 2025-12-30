@@ -23,29 +23,36 @@
     <!-- 左側側邊欄 (Sidebar) -->
     <aside id="sidebar" class="w-64 bg-[#2c3e50] text-white flex flex-col h-full transition-all duration-300 shadow-xl z-20 shrink-0">
         <div class="p-6 flex items-center gap-3 border-b border-gray-700">
-            <div class="w-8 h-8 bg-[#06C755] rounded-lg flex items-center justify-center font-bold text-white">S</div>
+            <div class="w-8 h-8 bg-[#06C755] rounded-lg flex items-center justify-center font-bold text-white shadow-lg">S</div>
             <span class="sidebar-text font-bold text-xl tracking-tighter uppercase italic">SportFlow</span>
         </div>
 
         <nav class="flex-1 mt-4 overflow-y-auto no-scrollbar">
-            <a href="javascript:void(0)" onclick="switchTab('dashboard')" class="nav-item sidebar-active flex items-center gap-4 px-6 py-4" data-tab="dashboard">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="sidebar-text">數據概覽</span>
+            <!-- 基礎功能 -->
+            <a href="javascript:void(0)" onclick="switchTab('dashboard')" class="nav-item sidebar-active flex items-center gap-4 px-6 py-4 transition-colors" data-tab="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="sidebar-text font-medium whitespace-nowrap">數據概覽</span>
             </a>
-            <a href="javascript:void(0)" onclick="switchTab('members')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400" data-tab="members">
-                <i data-lucide="users" class="w-5 h-5"></i><span class="sidebar-text">會員名冊管理</span>
+            <a href="javascript:void(0)" onclick="switchTab('members')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="members">
+                <i data-lucide="users" class="w-5 h-5"></i><span class="sidebar-text font-medium whitespace-nowrap">會員名冊管理</span>
+            </a>
+            <a href="javascript:void(0)" onclick="switchTab('courses')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="courses">
+                <i data-lucide="calendar" class="w-5 h-5"></i><span class="sidebar-text font-medium whitespace-nowrap">課程與商品建置</span>
+            </a>
+            <a href="javascript:void(0)" onclick="switchTab('checkin')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="checkin">
+                <i data-lucide="check-square" class="w-5 h-5"></i><span class="sidebar-text font-medium whitespace-nowrap">當日點名核銷</span>
             </a>
             
             <div class="border-t border-gray-700 my-2 mx-4"></div>
             
-            <!-- 新增模組按鈕 -->
-            <a href="javascript:void(0)" onclick="switchTab('announcements')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400" data-tab="announcements">
-                <i data-lucide="megaphone" class="w-5 h-5 text-amber-400"></i><span class="sidebar-text">前台公告管理</span>
+            <!-- 新功能區 -->
+            <a href="javascript:void(0)" onclick="switchTab('announcements')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="announcements">
+                <i data-lucide="megaphone" class="w-5 h-5 text-amber-400"></i><span class="sidebar-text font-medium whitespace-nowrap">前台公告管理</span>
             </a>
-            <a href="javascript:void(0)" onclick="switchTab('equipment')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400" data-tab="equipment">
-                <i data-lucide="hammer" class="w-5 h-5 text-blue-300"></i><span class="sidebar-text">設備租用管理</span>
+            <a href="javascript:void(0)" onclick="switchTab('equipment')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="equipment">
+                <i data-lucide="hammer" class="w-5 h-5 text-blue-300"></i><span class="sidebar-text font-medium whitespace-nowrap">設備租用管理</span>
             </a>
-            <a href="javascript:void(0)" onclick="switchTab('settings')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400" data-tab="settings">
-                <i data-lucide="settings" class="w-5 h-5"></i><span class="sidebar-text">系統參數設置</span>
+            <a href="javascript:void(0)" onclick="switchTab('settings')" class="nav-item flex items-center gap-4 px-6 py-4 text-gray-400 hover:text-white transition-colors" data-tab="settings">
+                <i data-lucide="settings" class="w-5 h-5"></i><span class="sidebar-text font-medium whitespace-nowrap">系統參數設置</span>
             </a>
         </nav>
         <div class="p-4 border-t border-gray-700 text-[10px] text-gray-500 text-center font-bold">SPORTFLOW v2.5</div>
@@ -53,13 +60,16 @@
 
     <!-- 右側主要區域 -->
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8 shrink-0 border-b">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8 shrink-0 border-b z-10">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 rounded-md lg:hidden"><i data-lucide="menu" class="w-6 h-6"></i></button>
                 <h2 id="tab-title" class="text-xl font-bold text-gray-700 italic">數據概覽</h2>
-                <div id="loading" class="hidden flex items-center gap-2 text-xs text-gray-400 italic ml-4"><div class="loader"></div> 正在連線...</div>
+                <div id="loading" class="hidden flex items-center gap-2 text-xs text-gray-400 italic ml-4"><div class="loader"></div> 正在連線雲端...</div>
             </div>
-            <div class="text-sm font-bold text-gray-600">Tony Admin</div>
+            <div class="flex items-center gap-3">
+                <div id="api-status-dot" class="w-2 h-2 rounded-full bg-red-500 shadow-sm animate-pulse"></div>
+                <div class="text-sm font-bold text-gray-600">Tony Admin</div>
+            </div>
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-8">
@@ -69,14 +79,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                         <div class="p-3 bg-green-50 text-green-500 rounded-xl"><i data-lucide="users"></i></div>
-                        <div><p class="text-xs text-gray-400 font-bold uppercase">Total Members</p><h3 id="stat-members" class="text-2xl font-bold">--</h3></div>
+                        <div><p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Total Members</p><h3 id="stat-members" class="text-2xl font-bold">--</h3></div>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                         <div class="p-3 bg-blue-50 text-blue-500 rounded-xl"><i data-lucide="calendar"></i></div>
-                        <div><p class="text-xs text-gray-400 font-bold uppercase">Active Courses</p><h3 id="stat-courses" class="text-2xl font-bold">--</h3></div>
+                        <div><p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Active Courses</p><h3 id="stat-courses" class="text-2xl font-bold">--</h3></div>
                     </div>
-                    <button onclick="refreshDashboard()" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-1 text-green-600 font-bold hover:bg-green-50">
-                        <i data-lucide="refresh-cw" class="w-5 h-5"></i><span class="text-[10px]">SYNC</span>
+                    <button onclick="refreshDashboard()" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-1 text-green-600 font-bold hover:bg-green-50 transition-all active:scale-95 shadow-lg shadow-green-50">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i><span class="text-[10px] font-bold">SYNC NOW</span>
                     </button>
                 </div>
             </div>
@@ -85,12 +95,12 @@
             <div id="members" class="tab-content">
                 <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
                     <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                        <h3 class="font-bold">正式會員名冊</h3>
-                        <button onclick="loadMembers()" class="text-[#06C755] text-xs font-bold px-3 py-1 border border-green-200 rounded-full">刷新</button>
+                        <h3 class="font-bold italic tracking-tighter text-gray-700">MEMBERS DATABASE</h3>
+                        <button onclick="loadMembers()" class="text-[#06C755] text-xs font-bold px-3 py-1 border border-green-200 rounded-full hover:bg-green-50">刷新名單</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
-                            <thead class="bg-white border-b text-gray-400 font-bold">
+                            <thead class="bg-white border-b text-gray-400 font-bold uppercase">
                                 <tr><th class="px-6 py-4">姓名</th><th class="px-6 py-4">手機</th><th class="px-6 py-4 text-center">點數</th><th class="px-6 py-4 text-right">操作</th></tr>
                             </thead>
                             <tbody id="member-list" class="divide-y"></tbody>
@@ -99,66 +109,72 @@
                 </div>
             </div>
 
+            <!-- 模組：課程建置 (暫存) -->
+            <div id="courses" class="tab-content text-center py-20 text-gray-400 italic">課程與商品管理模組開發中...</div>
+
+            <!-- 模組：當日核銷 (暫存) -->
+            <div id="checkin" class="tab-content text-center py-20 text-gray-400 italic">當日核銷與點名模組開發中...</div>
+
             <!-- 模組：公告管理 -->
             <div id="announcements" class="tab-content space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-lg mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="megaphone" class="w-5 h-5 text-amber-500"></i> 發布前台公告</h3>
                     <div class="flex flex-col md:flex-row gap-4">
-                        <input type="text" id="ann-title" placeholder="輸入公告標題 (例如：元旦休息通知)" class="flex-1 p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-amber-400">
-                        <button onclick="addAnnouncement()" class="bg-amber-500 text-white px-8 py-3 rounded-xl font-bold">發布公告</button>
+                        <input type="text" id="ann-title" placeholder="輸入公告標題 (例如：元旦休息通知)" class="flex-1 p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-amber-400 font-medium">
+                        <button onclick="addAnnouncement()" class="bg-amber-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-50">確認發布</button>
                     </div>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="p-4 border-b font-bold text-gray-700 bg-gray-50 text-xs uppercase tracking-widest">目前公告清單</div>
                     <div id="ann-list" class="divide-y text-sm"></div>
                 </div>
             </div>
 
-            <!-- 模組：設備管理 -->
+            <!-- 模組：設備租用 -->
             <div id="equipment" class="tab-content space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-lg mb-4 text-gray-700 flex items-center gap-2"><i data-lucide="hammer" class="w-5 h-5 text-blue-500"></i> 設備資產管理</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" id="eq-name" placeholder="設備名稱 (如：羽球拍)" class="p-3 bg-gray-50 border rounded-xl outline-none text-sm">
-                        <input type="number" id="eq-fee" placeholder="租用費用 (元/次)" class="p-3 bg-gray-50 border rounded-xl outline-none text-sm">
-                        <button onclick="addEquipment()" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-sm">確認新增</button>
+                        <input type="text" id="eq-name" placeholder="設備名稱 (如：羽球拍)" class="p-3 bg-gray-50 border rounded-xl outline-none text-sm font-medium">
+                        <input type="number" id="eq-fee" placeholder="租用費用 (元/次)" class="p-3 bg-gray-50 border rounded-xl outline-none text-sm font-medium">
+                        <button onclick="addEquipment()" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-50">確認新增</button>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="eq-list"></div>
             </div>
 
-            <!-- 模組：系統參數設置 -->
+            <!-- 模組：系統參數與匯款帳號 -->
             <div id="settings" class="tab-content space-y-8">
-                <div class="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border space-y-8">
+                <div class="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
                     <section>
                         <h3 class="font-bold text-lg text-gray-800 border-b pb-4 flex items-center gap-2"><i data-lucide="credit-card" class="text-orange-500"></i> 匯款帳號設定</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div><label class="text-[10px] font-bold text-gray-400 uppercase">銀行代碼 / 名稱</label><input type="text" id="bank-name" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 outline-none" placeholder="中國信託 (822)"></div>
-                            <div><label class="text-[10px] font-bold text-gray-400 uppercase">戶名</label><input type="text" id="bank-user" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 outline-none" placeholder="工作室名稱"></div>
-                            <div class="md:col-span-2"><label class="text-[10px] font-bold text-gray-400 uppercase">銀行帳號</label><input type="text" id="bank-account" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 font-mono outline-none" placeholder="123-456-789012"></div>
+                            <div><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">銀行代碼 / 名稱</label><input type="text" id="bank-name" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 outline-none focus:ring-1 focus:ring-orange-400" placeholder="例如：中國信託 (822)"></div>
+                            <div><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">戶名</label><input type="text" id="bank-user" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 outline-none focus:ring-1 focus:ring-orange-400" placeholder="工作室名稱"></div>
+                            <div class="md:col-span-2"><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">銀行帳號</label><input type="text" id="bank-account" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm mt-1 font-mono outline-none focus:ring-1 focus:ring-orange-400" placeholder="123-456-789012"></div>
                         </div>
                     </section>
                     
                     <section>
                         <h3 class="font-bold text-lg text-gray-800 border-b pb-4 flex items-center gap-2"><i data-lucide="link" class="text-blue-500"></i> API 連接設置 (GAS)</h3>
                         <div class="mt-4">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">GAS Web App URL (/exec)</label>
-                            <input type="text" id="api-url-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-[10px] outline-none mt-1" placeholder="https://script.google.com/macros/s/.../exec">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic tracking-tighter">GAS Web App URL (/exec)</label>
+                            <input type="text" id="api-url-input" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-[10px] outline-none focus:ring-2 focus:ring-[#06C755] mt-1" placeholder="https://script.google.com/macros/s/.../exec">
                         </div>
                     </section>
                     
-                    <button onclick="saveAllSettings()" class="w-full py-4 bg-[#2c3e50] text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 text-sm tracking-widest">儲存所有參數設定</button>
+                    <button onclick="saveAllSettings()" class="w-full py-4 bg-[#2c3e50] text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 text-sm tracking-widest">儲存並同步所有參數</button>
                 </div>
             </div>
 
         </main>
     </div>
 
-    <!-- JavaScript 業務邏輯：處理頁面切換與 API 串接 -->
+    <!-- JavaScript 業務邏輯 -->
     <script>
         let apiUrl = localStorage.getItem('sportflow_api_url') || '';
 
-        // 初始化
+        // 頁面初始化
         window.onload = () => {
             lucide.createIcons();
             document.getElementById('api-url-input').value = apiUrl;
@@ -174,7 +190,6 @@
         function showLoading(isLoading) { document.getElementById('loading').classList.toggle('hidden', !isLoading); }
         function checkApiStatus() { if (apiUrl) document.getElementById('api-status-dot').classList.replace('bg-red-500', 'bg-green-500'); }
 
-        // 通用 API 通訊
         async function apiFetch(action, params = {}) {
             if (!apiUrl) return null;
             showLoading(true);
@@ -185,13 +200,12 @@
             } catch (e) { console.error("API Error:", e); return null; } finally { showLoading(false); }
         }
 
-        // 保存設置
         async function saveAllSettings() {
             apiUrl = document.getElementById('api-url-input').value.trim();
             localStorage.setItem('sportflow_api_url', apiUrl);
             const bankData = { bank: document.getElementById('bank-name').value, user: document.getElementById('bank-user').value, account: document.getElementById('bank-account').value };
             const res = await apiFetch('saveBankInfo', bankData);
-            if (res && res.success) { alert('系統參數設定成功同步！'); checkApiStatus(); switchTab('dashboard'); } else { alert('儲存失敗，請檢查網址。'); }
+            if (res && res.success) { alert('系統參數已成功保存！'); checkApiStatus(); switchTab('dashboard'); } else { alert('儲存失敗，請檢查 API 網址是否正確。'); }
         }
 
         async function loadBankInfo() {
@@ -203,7 +217,6 @@
             }
         }
 
-        // 資料同步
         async function refreshDashboard() {
             const data = await apiFetch('getStats');
             if (data && data.success) {
@@ -217,10 +230,10 @@
             list.innerHTML = '<tr><td colspan="4" class="p-10 text-center italic text-gray-400">正在同步資料庫...</td></tr>';
             const data = await apiFetch('getMembers');
             if (!data || data.length === 0) {
-                list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">尚無資料</td></tr>';
+                list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">尚無會員資料</td></tr>';
             } else {
                 list.innerHTML = data.map(m => `
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 font-bold text-gray-700">${m.name}</td>
                         <td class="px-6 py-4 font-mono text-gray-400 text-xs">${m.phone}</td>
                         <td class="px-6 py-4 text-center"><span class="bg-green-50 text-green-600 px-2 py-1 rounded-md font-bold text-[10px]">${m.points} pt</span></td>
@@ -230,19 +243,18 @@
             }
         }
 
-        // 公告
         async function loadAnnouncements() {
             const list = document.getElementById('ann-list');
             list.innerHTML = '<p class="p-8 text-center italic text-gray-400 text-xs">載入公告中...</p>';
             const data = await apiFetch('getAnnouncements');
             if (!data || data.length === 0) {
-                list.innerHTML = '<p class="p-8 text-center text-gray-400 text-xs">目前無公告</p>';
+                list.innerHTML = '<p class="p-8 text-center text-gray-400 text-xs italic">目前無公告內容</p>';
             } else {
                 list.innerHTML = data.map(a => `
-                    <div class="p-4 flex justify-between items-center group hover:bg-gray-50">
+                    <div class="p-4 flex justify-between items-center group hover:bg-gray-50 transition-colors">
                         <div>
                             <p class="font-bold text-gray-700 underline decoration-amber-200 decoration-2 underline-offset-4">${a.title}</p>
-                            <p class="text-[10px] text-gray-400 mt-1 font-mono">${a.date}</p>
+                            <p class="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-widest">${a.date}</p>
                         </div>
                         <button onclick="deleteAnn('${a.id}')" class="text-gray-200 hover:text-red-400 transition-colors p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>
@@ -260,26 +272,25 @@
         }
 
         async function deleteAnn(id) {
-            if (!confirm('確認刪除公告？')) return;
+            if (!confirm('確認刪除這條公告嗎？')) return;
             await apiFetch('deleteAnnouncement', { id });
             loadAnnouncements();
         }
 
-        // 設備
         async function loadEquipment() {
             const list = document.getElementById('eq-list');
             list.innerHTML = '<p class="p-4 text-gray-400 italic text-sm">正在載入清單...</p>';
             const data = await apiFetch('getEquipment');
             if (!data || data.length === 0) {
-                list.innerHTML = '<p class="p-4 text-gray-400 text-sm italic">目前無設備</p>';
+                list.innerHTML = '<p class="p-4 text-gray-400 text-sm italic">目前沒有設備記錄</p>';
             } else {
                 list.innerHTML = data.map(e => `
-                    <div class="bg-white p-5 rounded-2xl border flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
                         <div>
                             <p class="font-bold text-gray-700">${e.name}</p>
-                            <p class="text-xs text-green-600 font-bold mt-1">$${e.fee} / 次</p>
+                            <p class="text-xs text-green-600 font-bold mt-1 tracking-tighter font-mono">$${e.fee} / 次</p>
                         </div>
-                        <button onclick="deleteEq('${e.id}')" class="text-gray-200 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                        <button onclick="deleteEq('${e.id}')" class="text-gray-200 hover:text-red-400 transition-colors p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                     </div>
                 `).join('');
                 lucide.createIcons();
@@ -289,7 +300,7 @@
         async function addEquipment() {
             const name = document.getElementById('eq-name').value.trim();
             const fee = document.getElementById('eq-fee').value.trim();
-            if (!name || !fee) return alert('資訊不全');
+            if (!name || !fee) return alert('請填寫完整資訊');
             await apiFetch('addEquipment', { name, fee });
             document.getElementById('eq-name').value = '';
             document.getElementById('eq-fee').value = '';
@@ -297,12 +308,11 @@
         }
 
         async function deleteEq(id) {
-            if (!confirm('確認移除設備資產？')) return;
+            if (!confirm('確認移除此設備？')) return;
             await apiFetch('deleteEquipment', { id });
             loadEquipment();
         }
 
-        // 導航切換
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
@@ -310,20 +320,42 @@
                 n.classList.toggle('sidebar-active', n.dataset.tab === id);
                 n.classList.toggle('text-gray-400', n.dataset.tab !== id);
             });
-            const titles = { 'dashboard': '數據概覽', 'members': '會員名冊管理', 'announcements': '前台公告管理', 'equipment': '設備租用管理', 'settings': '系統參數設置' };
-            document.getElementById('tab-title').innerText = titles[id] || 'SportFlow Portal';
+            
+            const titles = { 
+                'dashboard': '數據概覽', 
+                'members': '會員名冊管理', 
+                'courses': '課程與商品建置', 
+                'checkin': '當日點名核銷',
+                'announcements': '前台公告管理', 
+                'equipment': '設備租用管理', 
+                'settings': '系統參數設置' 
+            };
+            document.getElementById('tab-title').innerText = titles[id] || '管理後台';
+            
             if (id === 'dashboard') refreshDashboard();
             if (id === 'members') loadMembers();
             if (id === 'announcements') loadAnnouncements();
             if (id === 'equipment') loadEquipment();
             if (id === 'settings') loadBankInfo();
+            
             lucide.createIcons();
+            if (window.innerWidth < 1024) toggleSidebar(true);
         }
 
-        function toggleSidebar() {
+        function toggleSidebar(forceClose = false) {
             const s = document.getElementById('sidebar');
-            s.classList.toggle('w-64'); s.classList.toggle('w-0');
-            document.querySelectorAll('.sidebar-text').forEach(t => t.classList.toggle('hidden'));
+            if (forceClose) {
+                s.classList.replace('w-64', 'w-0');
+                document.querySelectorAll('.sidebar-text').forEach(t => t.classList.add('hidden'));
+            } else {
+                if (s.classList.contains('w-64')) {
+                    s.classList.replace('w-64', 'w-0');
+                    document.querySelectorAll('.sidebar-text').forEach(t => t.classList.add('hidden'));
+                } else {
+                    s.classList.replace('w-0', 'w-64');
+                    document.querySelectorAll('.sidebar-text').forEach(t => t.classList.remove('hidden'));
+                }
+            }
         }
     </script>
 </body>
