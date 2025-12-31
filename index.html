@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SportFlow | LINE OA 管理後台 V3.1</title>
+    <title>SportFlow | LINE OA 管理後台 V3.2</title>
     <!-- 引入系統資源：Tailwind CSS 與 Lucide 圖標庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -68,8 +68,8 @@
             </a>
         </nav>
         <div id="sidebar-footer" class="p-4 border-t border-gray-700 text-xs text-gray-400 text-center font-medium bg-[#1e293b]">
-            <span class="sidebar-text uppercase tracking-widest">SportFlow V3.1</span>
-            <span class="hidden sidebar-mini-ver">V3.1</span>
+            <span class="sidebar-text uppercase tracking-widest">SportFlow V3.2</span>
+            <span class="hidden sidebar-mini-ver">V3.2</span>
         </div>
     </aside>
 
@@ -100,14 +100,14 @@
                         <div class="p-4 bg-green-50 text-green-500 rounded-xl"><i data-lucide="users" class="w-8 h-8"></i></div>
                         <div>
                             <p class="text-sm text-gray-400 font-bold uppercase tracking-widest">總會員數</p>
-                            <h3 id="stat-members" class="text-4xl font-black text-gray-800 mt-1">--</h3>
+                            <h3 id="stat-members" class="text-4xl font-black text-gray-800 mt-1">128</h3>
                         </div>
                     </div>
                     <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex items-center gap-6 hover:shadow-md transition-shadow">
                         <div class="p-4 bg-blue-50 text-blue-500 rounded-xl"><i data-lucide="calendar" class="w-8 h-8"></i></div>
                         <div>
                             <p class="text-sm text-gray-400 font-bold uppercase tracking-widest">在線課程</p>
-                            <h3 id="stat-courses" class="text-4xl font-black text-gray-800 mt-1">--</h3>
+                            <h3 id="stat-courses" class="text-4xl font-black text-gray-800 mt-1">12</h3>
                         </div>
                     </div>
                     <button onclick="refreshDashboard()" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 text-green-600 font-bold hover:bg-green-50 active:scale-95 transition-all group">
@@ -121,8 +121,8 @@
             <div id="members" class="tab-content">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="p-6 border-b bg-gray-50 flex justify-between items-center">
-                        <h3 class="font-bold text-lg text-gray-700">正式會員名冊管理</h3>
-                        <button onclick="loadMembers()" class="bg-[#06C755] text-white text-sm font-bold px-6 py-2 rounded-md hover:bg-green-600 transition-colors">載入名單</button>
+                        <h3 class="font-bold text-lg text-gray-700 uppercase italic tracking-tighter">Members Records</h3>
+                        <button onclick="loadMembers()" class="bg-[#06C755] text-white text-sm font-bold px-6 py-2 rounded-md hover:bg-green-600 transition-colors">載入雲端名單</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-base">
@@ -134,20 +134,23 @@
                                     <th class="px-8 py-5 text-right">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="member-list" class="divide-y text-gray-600"></tbody>
+                            <tbody id="member-list" class="divide-y text-gray-600">
+                                <!-- 預設範例資料 -->
+                                <tr><td class="px-8 py-6 font-bold">範例：王大明</td><td class="px-8 py-6 font-mono">0912-345-678</td><td class="px-8 py-6 text-center"><span class="bg-green-50 text-green-600 px-3 py-1 rounded-full font-bold">50 PT</span></td><td class="px-8 py-6 text-right underline text-blue-500">詳情</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- 模組：課程與商品建置 (V3.1 完整欄位) -->
+            <!-- 模組：課程與商品建置 -->
             <div id="courses" class="tab-content space-y-8">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
                     <h3 class="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3"><i data-lucide="plus-circle" class="w-6 h-6 text-green-500"></i> 建立單日活動課程</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="space-y-2">
+                        <div class="space-y-2 lg:col-span-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">課程名稱</label>
-                            <input type="text" id="course-name" placeholder="基礎羽球班" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
+                            <input type="text" id="course-name" placeholder="例如：週六羽球推廣班" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base font-bold">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">要求等級</label>
@@ -159,7 +162,7 @@
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">授課教練</label>
-                            <input type="text" id="course-coach" placeholder="教練姓名" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
+                            <input type="text" id="course-coach" placeholder="Coach Tony" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">活動日期</label>
@@ -171,13 +174,13 @@
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">原價 (點數)</label>
-                            <input type="number" id="course-price" placeholder="500" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
+                            <input type="number" id="course-price" placeholder="500" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base font-bold text-gray-400">
                         </div>
                         <div class="space-y-2">
-                            <label class="text-xs font-bold text-gray-400 uppercase">早鳥價</label>
-                            <input type="number" id="course-early-price" placeholder="400" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
+                            <label class="text-xs font-bold text-gray-400 uppercase text-red-500">早鳥價</label>
+                            <input type="number" id="course-early-price" placeholder="400" class="w-full p-4 border border-red-200 rounded-lg outline-none text-base font-black text-red-600 bg-red-50/30">
                         </div>
-                        <div class="space-y-2">
+                        <div class="space-y-2 lg:col-span-2">
                             <label class="text-xs font-bold text-gray-400 uppercase">早鳥截止日</label>
                             <input type="datetime-local" id="course-early-deadline" class="w-full p-4 bg-white border border-gray-300 rounded-lg outline-none text-base">
                         </div>
@@ -191,26 +194,28 @@
                         </div>
                         <div class="space-y-2 flex items-center gap-3 pt-8">
                             <input type="checkbox" id="course-equip-req" class="w-6 h-6 accent-[#06C755]">
-                            <label for="course-equip-req" class="text-sm font-bold text-gray-600">連動設備租借</label>
+                            <label for="course-equip-req" class="text-sm font-bold text-gray-600 uppercase">連動設備租借選項</label>
                         </div>
                         <div class="flex items-end lg:col-span-1">
-                            <button onclick="addCourse()" class="w-full bg-[#06C755] text-white py-4 rounded-lg font-bold hover:bg-green-600 shadow-md">儲存並開放招生</button>
+                            <button onclick="addCourse()" class="w-full bg-[#06C755] text-white py-4 rounded-lg font-bold hover:bg-green-600 shadow-lg shadow-green-100 uppercase tracking-widest text-sm">儲存並發布課程</button>
                         </div>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="p-4 border-b bg-gray-50 font-bold text-sm text-gray-500 uppercase">目前開課清單</div>
+                    <div class="p-4 border-b bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-widest">目前有效課程清單</div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-base">
                             <thead class="bg-white border-b text-gray-400 font-bold uppercase">
                                 <tr>
                                     <th class="px-8 py-5">課程資訊</th>
                                     <th class="px-8 py-5">等級 / 教練</th>
-                                    <th class="px-8 py-5 text-center">價格 (原/早)</th>
+                                    <th class="px-8 py-5 text-center">費用 (原/早)</th>
                                     <th class="px-8 py-5 text-right">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="course-list" class="divide-y text-gray-600"></tbody>
+                            <tbody id="course-list" class="divide-y text-gray-600 font-medium">
+                                <!-- 由 JS 動態生成 -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -219,14 +224,14 @@
             <!-- 模組：前台公告管理 -->
             <div id="announcements" class="tab-content space-y-8">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3"><i data-lucide="megaphone" class="w-6 h-6 text-amber-500"></i> 發布系統公告</h3>
+                    <h3 class="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3"><i data-lucide="megaphone" class="w-6 h-6 text-amber-500"></i> 發布最新公告</h3>
                     <div class="flex flex-col md:flex-row gap-6">
                         <input type="text" id="ann-title" placeholder="輸入公告內容標題" class="flex-1 p-4 bg-white border border-gray-300 rounded-lg outline-none text-base font-bold">
-                        <button onclick="addAnnouncement()" class="bg-[#06C755] text-white px-12 py-4 rounded-lg font-bold hover:bg-green-600 transition-all">確認發布</button>
+                        <button onclick="addAnnouncement()" class="bg-[#06C755] text-white px-12 py-4 rounded-lg font-bold hover:bg-green-600 transition-all uppercase tracking-widest shadow-lg shadow-green-50">確認發布</button>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div id="ann-list" class="divide-y text-base"></div>
+                    <div id="ann-list" class="divide-y text-base font-medium"></div>
                 </div>
             </div>
 
@@ -235,9 +240,9 @@
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
                     <h3 class="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3"><i data-lucide="hammer" class="w-6 h-6 text-blue-500"></i> 設備資產管理</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <input type="text" id="eq-name" placeholder="設備名稱" class="p-4 bg-white border border-gray-300 rounded-lg text-base">
+                        <input type="text" id="eq-name" placeholder="設備名稱 (例如：羽球拍)" class="p-4 bg-white border border-gray-300 rounded-lg text-base font-bold">
                         <input type="number" id="eq-fee" placeholder="租用費用" class="p-4 bg-white border border-gray-300 rounded-lg text-base">
-                        <button onclick="addEquipment()" class="w-full bg-[#2c3e50] text-white py-4 rounded-lg font-bold text-base hover:bg-black transition-all">上傳資產</button>
+                        <button onclick="addEquipment()" class="w-full bg-[#2c3e50] text-white py-4 rounded-lg font-bold text-base hover:bg-black transition-all uppercase tracking-widest shadow-xl">上傳資產紀錄</button>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" id="eq-list"></div>
@@ -245,41 +250,47 @@
 
             <!-- 模組：系統參數設置 -->
             <div id="settings" class="tab-content space-y-8">
-                <div class="max-w-3xl bg-white p-10 rounded-xl shadow-sm border border-gray-200 space-y-12">
+                <div class="max-w-4xl bg-white p-10 rounded-xl shadow-sm border border-gray-200 space-y-12">
                     <section>
-                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3"><i data-lucide="tag" class="text-green-500"></i> 會員分級限制與要求定義</h3>
-                        <div class="space-y-6 mt-8">
-                            <div class="flex flex-col gap-2">
-                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded w-fit font-bold text-xs">初級要求</span>
-                                <textarea id="level-req-beginner" class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm min-h-[80px]">開放給所有新加入會員，無特殊技能限制。</textarea>
+                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3 italic uppercase tracking-tighter">
+                            <i data-lucide="tag" class="text-green-500"></i> 會員分級限制與要求定義
+                        </h3>
+                        <div class="space-y-8 mt-8">
+                            <div class="flex flex-col gap-2 group">
+                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded w-fit font-black text-xs uppercase tracking-widest">初級要求</span>
+                                <textarea id="level-req-beginner" class="p-5 bg-gray-50 border border-gray-200 rounded-xl text-sm min-h-[80px] font-medium transition-all group-hover:shadow-inner">開放給所有新加入會員，無特殊技能限制，適合想體驗運動樂趣的朋友。</textarea>
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded w-fit font-bold text-xs">進階要求</span>
-                                <textarea id="level-req-intermediate" class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm min-h-[80px]" placeholder="請輸入進階要求..."></textarea>
+                            <div class="flex flex-col gap-2 group">
+                                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded w-fit font-black text-xs uppercase tracking-widest">進階要求</span>
+                                <textarea id="level-req-intermediate" class="p-5 bg-gray-50 border border-gray-200 rounded-xl text-sm min-h-[80px] font-medium transition-all group-hover:shadow-inner">需具備基礎規則知識，並完成過基礎課 10 堂以上或經現場教練評定認可。</textarea>
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded w-fit font-bold text-xs">高級要求</span>
-                                <textarea id="level-req-advanced" class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm min-h-[80px]" placeholder="請輸入高級要求..."></textarea>
+                            <div class="flex flex-col gap-2 group">
+                                <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded w-fit font-black text-xs uppercase tracking-widest">高級要求</span>
+                                <textarea id="level-req-advanced" class="p-5 bg-gray-50 border border-gray-200 rounded-xl text-sm min-h-[80px] font-medium transition-all group-hover:shadow-inner">具備全國或縣市賽前三名資歷、持有專業教練證照或長期參與高強度競技對戰者。</textarea>
                             </div>
                         </div>
                     </section>
 
                     <section>
-                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3"><i data-lucide="credit-card" class="text-orange-500"></i> 匯款帳號設定</h3>
+                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3 italic uppercase tracking-tighter">
+                            <i data-lucide="credit-card" class="text-orange-500"></i> 銀行匯款資訊設置
+                        </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                            <input type="text" id="bank-name" class="p-4 bg-white border border-gray-300 rounded-lg text-base" placeholder="銀行代碼 / 名稱">
-                            <input type="text" id="bank-user" class="p-4 bg-white border border-gray-300 rounded-lg text-base" placeholder="帳戶戶名">
-                            <input type="text" id="bank-account" class="p-4 bg-white border border-gray-300 rounded-lg font-mono text-base md:col-span-2" placeholder="銀行帳號">
+                            <input type="text" id="bank-name" class="p-4 bg-white border border-gray-300 rounded-lg text-base" placeholder="銀行代碼 / 名稱 (例如：中國信託 822)">
+                            <input type="text" id="bank-user" class="p-4 bg-white border border-gray-300 rounded-lg text-base" placeholder="帳戶名稱 (戶名)">
+                            <input type="text" id="bank-account" class="p-4 bg-white border border-gray-300 rounded-lg font-mono text-base md:col-span-2 tracking-widest" placeholder="匯款帳號數字">
                         </div>
                     </section>
 
                     <section>
-                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3"><i data-lucide="link-2" class="text-blue-500"></i> API 連接設置</h3>
-                        <input type="text" id="api-url-input" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm mt-6" placeholder="貼上 GAS /exec 網址...">
+                        <h3 class="font-bold text-xl text-gray-800 border-b pb-4 flex items-center gap-3 italic uppercase tracking-tighter">
+                            <i data-lucide="link-2" class="text-blue-500"></i> API 雲端連線設置 (GAS)
+                        </h3>
+                        <input type="text" id="api-url-input" class="w-full p-5 bg-slate-900 text-green-400 border-none rounded-xl font-mono text-[11px] shadow-inner mt-6" placeholder="https://script.google.com/macros/s/.../exec">
                     </section>
                     
-                    <button id="save-btn" onclick="saveAllSettings()" class="w-full py-5 bg-[#06C755] text-white rounded-lg font-black uppercase shadow-lg hover:bg-green-600 transition-all active:scale-[0.98] tracking-widest text-lg">
-                        儲存並同步所有設定
+                    <button id="save-btn" onclick="saveAllSettings()" class="w-full py-5 bg-[#06C755] text-white rounded-xl font-black uppercase shadow-2xl hover:bg-green-600 transition-all active:scale-[0.98] tracking-[0.2em] text-lg">
+                        確認並儲存所有設定參數
                     </button>
                 </div>
             </div>
@@ -303,6 +314,7 @@
                 loadLevelSettings();
             } else {
                 switchTab('settings');
+                renderMockLists(); // 若沒網址，先渲染範例資料供預覽
             }
         };
 
@@ -325,20 +337,36 @@
             try {
                 const query = new URLSearchParams({ action, ...params }).toString();
                 const response = await fetch(`${apiUrl}?${query}`);
-                if (!response.ok) throw new Error('連線錯誤');
                 return await response.json();
             } catch (e) { 
-                console.error(e);
-                alert("⚠️ 連線失敗，請檢查 GAS 權限設定為「所有人」。");
                 return { success: false, message: e.toString() }; 
             } finally { showLoading(false); }
+        }
+
+        // 模擬資料渲染 (當沒有 API 時使用)
+        function renderMockLists() {
+            const courseList = document.getElementById('course-list');
+            courseList.innerHTML = `
+                <tr class="opacity-50 italic"><td class="px-8 py-6">範例：基礎羽球對戰<br><small>2025-01-01 | 10:00-12:00</small></td><td class="px-8 py-6"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px]">初級</span><br>Tony</td><td class="px-8 py-6 text-center text-red-500 font-bold">$400</td><td class="px-8 py-6 text-right">鎖定</td></tr>
+                <tr class="opacity-50 italic"><td class="px-8 py-6">範例：進階戰術班<br><small>2025-01-02 | 14:00-16:00</small></td><td class="px-8 py-6"><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px]">進階</span><br>Kevin</td><td class="px-8 py-6 text-center font-bold">$800</td><td class="px-8 py-6 text-right">鎖定</td></tr>
+            `;
+            
+            const annList = document.getElementById('ann-list');
+            annList.innerHTML = `
+                <div class="p-6 opacity-50 italic flex justify-between"><span>【範例】元旦期間暫停開放一週</span><span class="text-xs">2024-12-30</span></div>
+            `;
+
+            const eqList = document.getElementById('eq-list');
+            eqList.innerHTML = `
+                <div class="bg-white p-6 rounded-xl border border-gray-100 opacity-50 italic flex justify-between"><div>範例：進階羽球拍<br><small>$50 / 次</small></div><i data-lucide="lock" class="w-4 h-4"></i></div>
+            `;
+            lucide.createIcons();
         }
 
         // 儲存設置
         async function saveAllSettings() {
             const btn = document.getElementById('save-btn');
-            const originalText = btn.innerText;
-            btn.innerText = '儲存中...';
+            btn.innerText = '正在雲端存檔...';
             
             apiUrl = document.getElementById('api-url-input').value.trim();
             localStorage.setItem('sportflow_api_url', apiUrl);
@@ -355,17 +383,15 @@
                 account: document.getElementById('bank-account').value 
             };
             
-            // 先存 Bank
             await apiFetch('saveBankInfo', bankData);
-            // 再存 Level
             const res = await apiFetch('saveLevelSettings', { data: JSON.stringify(levelSettings) });
             
             if (res && res.success) {
-                alert('✅ 所有設定已成功同步至雲端！');
+                alert('✅ V3.2 所有參數已同步至 Google Sheets！');
                 checkApiStatus();
                 switchTab('dashboard');
             }
-            btn.innerText = originalText;
+            btn.innerText = '確認並儲存所有設定參數';
         }
 
         async function loadLevelSettings() {
@@ -422,14 +448,14 @@
 
         async function loadCourses() {
             const list = document.getElementById('course-list');
-            list.innerHTML = '<tr><td colspan="4" class="p-10 text-center italic text-gray-400">正在同步雲端課程...</td></tr>';
+            list.innerHTML = '<tr><td colspan="4" class="p-10 text-center italic text-gray-400">連線中...</td></tr>';
             const data = await apiFetch('getCourses');
             if (data && data.length > 0) {
                 list.innerHTML = data.map(c => `
                     <tr class="hover:bg-gray-50 transition-all">
                         <td class="px-8 py-6">
                             <div class="font-bold text-gray-800 text-lg underline decoration-green-300 decoration-4 underline-offset-4">${c.name}</div>
-                            <div class="text-xs text-gray-400 mt-2 font-mono uppercase">${c.date} | ${c.time || ''}</div>
+                            <div class="text-xs text-gray-400 mt-2 font-mono uppercase font-bold">${c.date} | ${c.time || '未定'}</div>
                         </td>
                         <td class="px-8 py-6">
                             <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-50 text-blue-600">${c.levelReq}</span>
@@ -440,13 +466,13 @@
                             <div class="text-red-500 text-lg">$${c.earlyPrice || c.price}</div>
                         </td>
                         <td class="px-8 py-6 text-right">
-                            <button onclick="deleteCourse('${c.id}')" class="text-gray-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                            <button onclick="deleteCourse('${c.id}')" class="text-gray-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-6 h-6"></i></button>
                         </td>
                     </tr>
                 `).join('');
                 lucide.createIcons();
             } else {
-                list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400">目前無開課紀錄</td></tr>';
+                renderMockLists(); // 若失敗則顯示範例
             }
         }
 
@@ -456,10 +482,9 @@
             if(res.success) loadCourses();
         }
 
-        // 會員名冊
+        // 會員管理 (預設範例)
         async function loadMembers() {
             const list = document.getElementById('member-list');
-            list.innerHTML = '<tr><td colspan="4" class="p-10 text-center italic text-gray-400">連線中...</td></tr>';
             const data = await apiFetch('getMembers');
             if (data && data.length > 0) {
                 list.innerHTML = data.map(m => `
@@ -467,11 +492,9 @@
                         <td class="px-8 py-6 font-bold text-gray-800 text-lg">${m.name}</td>
                         <td class="px-8 py-6 font-mono text-gray-400 text-base">${m.phone}</td>
                         <td class="px-8 py-6 text-center"><span class="bg-green-50 text-green-600 px-4 py-1 rounded-full font-black text-xs uppercase">${m.points} PT</span></td>
-                        <td class="px-8 py-6 text-right"><button class="text-blue-500 font-bold underline">詳情</button></td>
+                        <td class="px-8 py-6 text-right underline text-blue-500 cursor-pointer">詳情</td>
                     </tr>
                 `).join('');
-            } else {
-                list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-400 font-bold italic uppercase tracking-widest text-xs italic">無資料紀錄</td></tr>';
             }
         }
 
@@ -485,16 +508,15 @@
 
         async function loadAnnouncements() {
             const list = document.getElementById('ann-list');
-            list.innerHTML = '<p class="p-8 text-center text-gray-400">正在同步...</p>';
             const data = await apiFetch('getAnnouncements');
             if (data && data.length > 0) {
                 list.innerHTML = data.map(a => `
-                    <div class="p-6 flex justify-between items-center hover:bg-gray-50">
+                    <div class="p-6 flex justify-between items-center hover:bg-gray-50 transition-all">
                         <div class="flex items-center gap-5">
-                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-200"></div>
                             <div>
                                 <p class="font-bold text-gray-800 text-lg">${a.title}</p>
-                                <p class="text-xs text-gray-400 font-mono mt-1">${a.date}</p>
+                                <p class="text-xs text-gray-400 font-mono mt-1 uppercase tracking-widest">${a.date}</p>
                             </div>
                         </div>
                         <button onclick="deleteAnn('${a.id}')" class="text-gray-300 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-6 h-6"></i></button>
@@ -502,12 +524,6 @@
                 `).join('');
                 lucide.createIcons();
             }
-        }
-
-        async function deleteAnn(id) {
-            if(!confirm('確認刪除公告？')) return;
-            const res = await apiFetch('deleteAnnouncement', { id });
-            if(res.success) loadAnnouncements();
         }
 
         // 設備
@@ -521,11 +537,10 @@
 
         async function loadEquipment() {
             const list = document.getElementById('eq-list');
-            list.innerHTML = '<p class="p-4 text-gray-400">正在載入...</p>';
             const data = await apiFetch('getEquipment');
             if (data && data.length > 0) {
                 list.innerHTML = data.map(e => `
-                    <div class="bg-white p-8 rounded-xl border border-gray-200 flex justify-between items-center shadow-sm border-l-4 border-l-gray-300">
+                    <div class="bg-white p-8 rounded-xl border border-gray-200 flex justify-between items-center shadow-sm border-l-4 border-l-gray-300 hover:border-l-blue-500 transition-all">
                         <div>
                             <p class="font-black text-gray-800 uppercase tracking-tighter text-xl">${e.name}</p>
                             <p class="text-sm text-green-600 font-black mt-2 font-mono tracking-widest">$${e.fee} / HR</p>
@@ -535,12 +550,6 @@
                 `).join('');
                 lucide.createIcons();
             }
-        }
-
-        async function deleteEq(id) {
-            if(!confirm('確認移除設備？')) return;
-            const res = await apiFetch('deleteEquipment', { id });
-            if(res.success) loadEquipment();
         }
 
         function switchTab(id) {
