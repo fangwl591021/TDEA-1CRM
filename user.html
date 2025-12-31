@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SportFlow | 運動生活隨時預約</title>
+    <title>SportFlow | 運動島推廣中心專屬預約</title>
     <!-- 引入 Tailwind CSS 與 Lucide 圖標 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -13,7 +13,6 @@
             --line-bg: #f8fafc;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--line-bg); }
-        .active-tab { color: var(--line-green); border-bottom: 3px solid var(--line-green); }
         .bottom-nav-active { color: var(--line-green); }
         .glass-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
         .tab-content { display: none; }
@@ -25,6 +24,9 @@
         /* 橫式列表卡片效果 */
         .course-horizontal-card { transition: all 0.2s; }
         .course-horizontal-card:active { background-color: #f1f5f9; transform: scale(0.98); }
+
+        /* 公告走馬燈感 */
+        .announcement-item { border-left: 4px solid #fbbf24; }
     </style>
 </head>
 <body class="pb-24">
@@ -36,76 +38,87 @@
             <h1 class="text-xl font-black italic tracking-tighter text-gray-800 uppercase">SportFlow</h1>
         </div>
         <div class="flex items-center gap-4">
-            <button class="relative p-2 text-gray-400"><i data-lucide="bell" class="w-6 h-6"></i><span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span></button>
+            <div id="api-indicator" class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
             <div class="w-8 h-8 bg-gray-200 rounded-full border-2 border-white shadow-sm overflow-hidden">
                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" alt="Avatar">
             </div>
         </div>
     </header>
 
-    <!-- 主 Banner 區塊：專區導航 -->
-    <section class="p-6">
-        <div class="relative w-full h-40 rounded-3xl overflow-hidden shadow-xl mb-6">
-            <img src="https://images.unsplash.com/photo-1521503862198-2ae9a997bbc9?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover brightness-75">
-            <div class="absolute inset-0 flex flex-col justify-center px-8">
-                <h2 class="text-white text-2xl font-black italic mb-1 tracking-tighter">探索你的運動極限</h2>
-                <p class="text-green-300 text-[10px] font-bold uppercase tracking-[0.2em]">Live Your Best Life</p>
-            </div>
-        </div>
-
-        <!-- 專區按鈕選單 -->
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="switchPage('courses')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-all active:scale-95">
-                <div class="w-10 h-10 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
-                    <i data-lucide="calendar" class="w-5 h-5"></i>
-                </div>
-                <span class="font-bold text-sm text-gray-700">課程專區</span>
-            </button>
-            <button onclick="switchPage('member')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-all active:scale-95">
-                <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
-                    <i data-lucide="user" class="w-5 h-5"></i>
-                </div>
-                <span class="font-bold text-sm text-gray-700">會員專區</span>
-            </button>
-        </div>
-    </section>
-
-    <!-- 內容區塊 -->
+    <!-- 主內容區 -->
     <main id="main-content">
         
-        <!-- 首頁精選 (Home) -->
-        <div id="page-home" class="tab-content active px-6 space-y-6">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-base font-black text-gray-800 border-l-4 border-[#06C755] pl-3 italic uppercase tracking-widest">精選推薦</h3>
-                <button class="text-xs text-[#06C755] font-bold" onclick="switchPage('courses')">查看更多</button>
-            </div>
-            <div id="featured-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-4">
-                <!-- 精選依然保留卡片橫向捲動 -->
-                <div class="min-w-[200px] bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                    <img src="https://images.unsplash.com/photo-1626224484214-4051d0cbc71a?auto=format&fit=crop&q=80&w=400" class="w-full h-24 object-cover">
-                    <div class="p-3">
-                        <span class="text-[9px] text-green-600 font-black uppercase tracking-tighter">新手推薦</span>
-                        <h4 class="font-bold text-gray-800 text-sm truncate">基礎羽球班</h4>
+        <!-- 首頁 (Home) -->
+        <div id="page-home" class="tab-content active">
+            <!-- BANNER 區塊 (運動島風格) -->
+            <section class="p-6">
+                <div class="relative w-full h-44 rounded-3xl overflow-hidden shadow-xl mb-6">
+                    <!-- Tony: 請替換為您從 FB 下載的封面圖網址 -->
+                    <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover brightness-75">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+                        <h2 class="text-white text-xl font-black italic mb-1 tracking-tight">運動島推廣中心</h2>
+                        <p class="text-green-300 text-[10px] font-bold uppercase tracking-[0.2em]">打造您的健康運動生活</p>
                     </div>
                 </div>
-            </div>
+
+                <!-- 專區按鈕選單 -->
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button onclick="switchPage('courses')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-all active:scale-95">
+                        <div class="w-10 h-10 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
+                            <i data-lucide="calendar" class="w-5 h-5"></i>
+                        </div>
+                        <span class="font-black text-xs text-gray-700 uppercase tracking-widest">課程專區</span>
+                    </button>
+                    <button onclick="switchPage('member')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-all active:scale-95">
+                        <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-5 h-5"></i>
+                        </div>
+                        <span class="font-black text-xs text-gray-700 uppercase tracking-widest">會員專區</span>
+                    </button>
+                </div>
+
+                <!-- 首頁內容：最新公告 -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="text-sm font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest">
+                            <i data-lucide="megaphone" class="w-4 h-4 text-amber-500"></i> 最新公告
+                        </h3>
+                    </div>
+                    <div id="home-ann-list" class="space-y-3">
+                        <!-- 動態載入公告 -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-xs text-gray-400 italic">正在載入公告...</div>
+                    </div>
+                </div>
+
+                <!-- 首頁內容：近期開課 (前5名) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="text-sm font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest">
+                            <i data-lucide="zap" class="w-4 h-4 text-orange-500"></i> 近期開課
+                        </h3>
+                        <button onclick="switchPage('courses')" class="text-[10px] text-[#06C755] font-black uppercase tracking-tighter underline">查看更多</button>
+                    </div>
+                    <div id="home-course-list" class="space-y-4">
+                        <!-- 動態載入近期前5個課程 -->
+                        <p class="text-center text-gray-400 py-10 text-xs italic">正在抓取課表中...</p>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <!-- 課程專區 (Courses) - 修改為橫向長條型 -->
-        <div id="page-courses" class="tab-content px-6 space-y-6">
-            <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+        <!-- 課程專區 (Courses) - 全列表 -->
+        <div id="page-courses" class="tab-content px-6 pt-6">
+            <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100 mb-6">
                 <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
-                <input type="text" placeholder="搜尋課程或教練名稱..." class="flex-1 text-sm outline-none bg-transparent">
+                <input type="text" placeholder="搜尋所有課程..." class="flex-1 text-sm outline-none bg-transparent">
             </div>
-            
-            <!-- 課程清單容器 -->
             <div id="full-course-list" class="space-y-4">
-                <p class="text-center text-gray-400 py-10 text-sm italic">同步雲端課表中...</p>
+                <!-- 動態載入全部課程 -->
             </div>
         </div>
 
         <!-- 會員專區 (Member) -->
-        <div id="page-member" class="tab-content px-6 space-y-6">
+        <div id="page-member" class="tab-content px-6 pt-6 space-y-6">
             <div class="bg-gradient-to-br from-[#2c3e50] to-[#1a252f] p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
                 <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">SportFlow Member</p>
@@ -125,7 +138,6 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 text-sm font-bold text-gray-700">
                 <button class="w-full p-5 flex items-center justify-between hover:bg-gray-50"><span class="flex items-center gap-3"><i data-lucide="history" class="w-4 h-4 text-orange-500"></i>我的預約</span><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i></button>
                 <button class="w-full p-5 flex items-center justify-between hover:bg-gray-50"><span class="flex items-center gap-3"><i data-lucide="credit-card" class="w-4 h-4 text-purple-500"></i>儲值紀錄</span><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i></button>
-                <button class="w-full p-5 flex items-center justify-between hover:bg-gray-50"><span class="flex items-center gap-3"><i data-lucide="shield-check" class="w-4 h-4 text-blue-500"></i>等級認證</span><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i></button>
                 <button class="w-full p-5 flex items-center justify-between text-red-500"><span class="flex items-center gap-3"><i data-lucide="log-out" class="w-4 h-4"></i>登出帳號</span></button>
             </div>
         </div>
@@ -150,82 +162,108 @@
 
         window.onload = () => {
             lucide.createIcons();
-            if (apiUrl) loadCourses();
-            else renderMockCourses();
+            if (apiUrl) {
+                document.getElementById('api-indicator').classList.replace('bg-gray-300', 'bg-[#06C755]');
+                loadAllData();
+            } else {
+                renderMockHome();
+            }
         };
 
         function switchPage(pageId) {
             document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
-            document.querySelectorAll('nav button').forEach(b => b.classList.replace('bottom-nav-active', 'text-gray-400'));
+            document.querySelectorAll('nav button').forEach(b => {
+                b.classList.remove('bottom-nav-active');
+                b.classList.add('text-gray-400');
+            });
             document.getElementById('btn-' + pageId).classList.replace('text-gray-400', 'bottom-nav-active');
             lucide.createIcons();
             window.scrollTo(0, 0);
         }
 
-        async function loadCourses() {
+        async function loadAllData() {
             try {
-                const response = await fetch(`${apiUrl}?action=getCourses`);
-                const data = await response.json();
-                if (data && data.length > 0) renderCourseList(data);
-                else renderMockCourses();
-            } catch (e) { renderMockCourses(); }
+                // 同時抓取公告與課程
+                const [annRes, courseRes] = await Promise.all([
+                    fetch(`${apiUrl}?action=getAnnouncements`),
+                    fetch(`${apiUrl}?action=getCourses`)
+                ]);
+                
+                const annData = await annRes.json();
+                const courseData = await courseRes.json();
+
+                renderAnnouncements(annData);
+                renderCourses(courseData);
+            } catch (e) {
+                console.error("API Error", e);
+                renderMockHome();
+            }
         }
 
-        // 修改重點：橫向列表渲染邏輯
-        function renderCourseList(data) {
-            const listContainer = document.getElementById('full-course-list');
-            listContainer.innerHTML = data.map(course => `
-                <div class="course-horizontal-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex h-32">
-                    <!-- 左側：縮圖 -->
-                    <div class="w-28 shrink-0 relative">
-                        <img src="${course.coverUrl || 'https://via.placeholder.com/200x200?text=Sport'}" class="w-full h-full object-cover">
-                        <div class="absolute top-0 left-0 bg-[#06C755] text-white text-[8px] font-black px-2 py-0.5 rounded-br-lg uppercase tracking-tighter">
-                            ${course.levelReq}
-                        </div>
-                    </div>
-
-                    <!-- 中間：簡介 -->
-                    <div class="flex-1 p-3 flex flex-col justify-center min-w-0">
-                        <h4 class="font-black text-gray-800 text-sm truncate uppercase tracking-tighter mb-1">${course.name}</h4>
-                        <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold mb-1">
-                            <i data-lucide="user" class="w-3 h-3 text-blue-400"></i> ${course.coach}
-                        </div>
-                        <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold">
-                            <i data-lucide="clock" class="w-3 h-3 text-orange-400"></i> ${course.date}
-                        </div>
-                    </div>
-
-                    <!-- 右側：詳細說明與預約 -->
-                    <div class="w-24 border-l border-gray-50 p-3 flex flex-col justify-between items-center bg-gray-50/30">
-                        <div class="text-center">
-                            <p class="text-[9px] text-gray-400 line-through font-bold leading-none">$${course.price}</p>
-                            <p class="text-sm font-black text-red-500 leading-tight">$${course.earlyPrice || course.price}</p>
-                        </div>
-                        <button onclick="showDetails('${course.id}')" class="text-[9px] font-black text-[#06C755] underline uppercase tracking-tighter mb-1">
-                            詳細說明
-                        </button>
-                        <button class="w-full py-1.5 bg-[#06C755] text-white rounded-lg text-[10px] font-black shadow-sm uppercase active:scale-90 transition-transform">
-                            預約
-                        </button>
-                    </div>
+        // 渲染公告 (顯示前3條)
+        function renderAnnouncements(data) {
+            const container = document.getElementById('home-ann-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 px-2 italic">目前無最新消息</p>';
+                return;
+            }
+            container.innerHTML = data.slice(0, 3).map(ann => `
+                <div class="announcement-item bg-white p-4 rounded-xl shadow-sm border border-gray-50 flex justify-between items-center">
+                    <p class="text-xs font-bold text-gray-700 truncate mr-4">${ann.title}</p>
+                    <span class="text-[8px] text-gray-400 font-mono shrink-0">${ann.date}</span>
                 </div>
             `).join('');
+        }
+
+        // 渲染課程 (首頁顯示前5個，全列表顯示全部)
+        function renderCourses(data) {
+            if (!data || data.length === 0) return;
+
+            // 橫式卡片生成函式
+            const createCard = (c) => `
+                <div class="course-horizontal-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex h-32">
+                    <div class="w-28 shrink-0 relative">
+                        <img src="${c.coverUrl || 'https://via.placeholder.com/200x200?text=Sport'}" class="w-full h-full object-cover">
+                        <div class="absolute top-0 left-0 bg-[#06C755] text-white text-[8px] font-black px-2 py-0.5 rounded-br-lg uppercase">${c.levelReq}</div>
+                    </div>
+                    <div class="flex-1 p-3 flex flex-col justify-center min-w-0">
+                        <h4 class="font-black text-gray-800 text-sm truncate tracking-tighter mb-1">${c.name}</h4>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold mb-0.5"><i data-lucide="user" class="w-3 h-3 text-blue-400"></i> ${c.coach}</div>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-400 font-bold"><i data-lucide="clock" class="w-3 h-3 text-orange-400"></i> ${c.date}</div>
+                    </div>
+                    <div class="w-24 border-l border-gray-50 p-3 flex flex-col justify-between items-center bg-gray-50/20">
+                        <div class="text-center">
+                            <p class="text-[9px] text-gray-300 line-through font-bold">$${c.price}</p>
+                            <p class="text-sm font-black text-red-500">$${c.earlyPrice || c.price}</p>
+                        </div>
+                        <button class="w-full py-1.5 bg-[#06C755] text-white rounded-lg text-[9px] font-black shadow-sm uppercase active:scale-90 transition-transform">預約</button>
+                    </div>
+                </div>
+            `;
+
+            // 1. 首頁前5名
+            document.getElementById('home-course-list').innerHTML = data.slice(0, 5).map(c => createCard(c)).join('');
+            
+            // 2. 課程專區全列表
+            document.getElementById('full-course-list').innerHTML = data.map(c => createCard(c)).join('');
+            
             lucide.createIcons();
         }
 
-        function renderMockCourses() {
-            const mock = [
-                { id: 'm1', name: '基礎羽球推廣課', levelReq: '初級', coach: 'Coach Tony', price: 500, earlyPrice: 400, date: '12/31 14:00', coverUrl: 'https://images.unsplash.com/photo-1626224484214-4051d0cbc71a?auto=format&fit=crop&q=80&w=200' },
-                { id: 'm2', name: '進階戰術班 (A)', levelReq: '進階', coach: 'Coach Kevin', price: 800, earlyPrice: 650, date: '01/05 19:00', coverUrl: 'https://images.unsplash.com/photo-1511067007398-7e4b90cfa4bc?auto=format&fit=crop&q=80&w=200' },
-                { id: 'm3', name: '週末瑜珈舒展班', levelReq: '初級', coach: 'Linda', price: 400, earlyPrice: 300, date: '01/06 10:00', coverUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=200' }
+        // 範例資料 (用於預覽)
+        function renderMockHome() {
+            const mockCourses = [
+                { id: '1', name: '基礎羽球班', levelReq: '初級', coach: 'Tony', price: 500, earlyPrice: 400, date: '12/31 14:00' },
+                { id: '2', name: '進階戰術班', levelReq: '進階', coach: 'Kevin', price: 800, earlyPrice: 650, date: '01/05 19:00' },
+                { id: '3', name: '成人體能訓練', levelReq: '初級', coach: 'Tony', price: 600, earlyPrice: 500, date: '01/06 10:00' },
+                { id: '4', name: '週末體驗團', levelReq: '初級', coach: 'Linda', price: 300, earlyPrice: 200, date: '01/07 14:00' },
+                { id: '5', name: '高級競技班', levelReq: '高級', coach: 'Master', price: 1200, earlyPrice: 1000, date: '01/10 18:00' }
             ];
-            renderCourseList(mock);
-        }
-
-        function showDetails(id) {
-            // 未來實作開啟詳細說明彈窗或頁面
-            alert('正在跳轉至詳細說明 (ID: ' + id + ')');
+            const mockAnns = [{ title: '【重要】春節期間中心開放時間異動公告', date: '2024-12-30' }];
+            
+            renderAnnouncements(mockAnns);
+            renderCourses(mockCourses);
         }
     </script>
 </body>
