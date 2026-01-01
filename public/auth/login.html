@@ -157,8 +157,8 @@
     </div>
     
     <script>
-        // LIFF ID - 請替換成你的 LIFF ID
-        const LIFF_ID = '2008786875-F7ifLsbN'; // ← 這裡要換成你的 LIFF ID
+        // LIFF ID - 你的 LIFF ID
+        const LIFF_ID = '2008786875-F7ifLsbN';
         
         let liff = null;
         
@@ -237,7 +237,7 @@
                 
                 // 跳轉到儀表板
                 setTimeout(() => {
-                    window.location.href = '../dashboard/index.html';
+                    window.location.href = 'dashboard/index.html';
                 }, 500);
                 
             } catch (error) {
@@ -252,7 +252,7 @@
                 userId: 'demo_001',
                 displayName: '體驗會員',
                 pictureUrl: '',
-                statusMessage: '這是體驗帳號',
+                statusMessage: '這是測試帳號',
                 loginMethod: 'demo',
                 loginTime: new Date().toISOString()
             };
@@ -261,7 +261,7 @@
             localStorage.setItem('is_logged_in', 'true');
             
             alert('已進入體驗模式！');
-            window.location.href = '../dashboard/index.html';
+            window.location.href = 'dashboard/index.html';
         }
         
         // 顯示錯誤訊息
@@ -273,7 +273,7 @@
         // 檢查是否已登入
         function checkLoginStatus() {
             if (localStorage.getItem('is_logged_in') === 'true') {
-                window.location.href = '../dashboard/index.html';
+                window.location.href = 'dashboard/index.html';
             }
         }
         
