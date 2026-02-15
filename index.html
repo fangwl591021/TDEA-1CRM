@@ -11,20 +11,14 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
     body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #ffffff; color: #333; margin: 0; }
-    
-    /* 規格鎖定：強制取消所有圓角 - Ragic Style */
     * { border-radius: 0 !important; }
-
     .sidebar-bg { background-color: #1a1a1a; }
     .sidebar-item:hover { background-color: #2a2a2a; }
     .sidebar-active { background-color: #06C755 !important; color: #fff !important; }
-    
     .crm-table { width: 100%; border-collapse: collapse; }
     .crm-table th { background-color: #f1f3f5; border: 1px solid #dee2e6; padding: 10px 12px; font-size: 13px; font-weight: 700; color: #495057; text-align: left; position: sticky; top: 0; z-index: 10; }
     .crm-table td { border: 1px solid #dee2e6; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
     .crm-table tr:hover { background-color: #f8f9fa; }
-
-    /* 詳細資料格線佈局 (RAGIC 全螢幕展開) */
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid #dee2e6; border-left: 1px solid #dee2e6; }
     .detail-cell { display: flex; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; min-height: 44px; }
     .detail-label { width: 160px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; padding: 10px 15px; font-size: 12px; font-weight: 700; color: #666; flex-shrink: 0; display: flex; align-items: center; }
@@ -32,7 +26,6 @@
     .detail-input { width: 100%; height: 100%; padding: 0 15px; border: none; font-size: 14px; outline: none; }
     .detail-input:focus { background-color: #fffde7; }
     .detail-input:disabled { background-color: #f1f3f5; color: #999; cursor: not-allowed; }
-
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #ccc; }
@@ -42,14 +35,7 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
-    
-    /**
-     * 環境配置管理
-     * 支援 Cloudflare Worker 變數注入
-     */
-    const CONFIG = { 
-      GAS_URL: window.CRM_CONFIG?.GAS_URL || "" 
-    };
+    const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
 
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
@@ -67,48 +53,28 @@
       return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={paths[name] || ""} /></svg>;
     };
 
-    /**
-     * API 呼叫邏輯
-     * 當未設定 GAS_URL 或請求失敗時回退到模擬數據
-     */
     const callApi = async (action, params = {}) => {
-      if (!CONFIG.GAS_URL || CONFIG.GAS_URL === "" || CONFIG.GAS_URL.includes("您的ID")) {
-        console.warn("系統偵測到未設定有效 GAS_URL，已進入模擬模式。");
+      if (!CONFIG.GAS_URL) {
+        console.warn("未偵測到 GAS_URL，自動進入測試模式。");
         return getMockData(action, params.type);
       }
-
       try {
         const queryParams = new URLSearchParams({ action, ...params }).toString();
         const response = await fetch(`${CONFIG.GAS_URL}?${queryParams}`);
-        if (!response.ok) throw new Error("HTTP Status: " + response.status);
+        if (!response.ok) throw new Error("API 請求失敗");
         return await response.json();
       } catch (error) { 
-        console.error("真實資料讀取失敗，改用模擬數據：", error.message);
         return getMockData(action, params.type);
       }
     };
 
-    /**
-     * 規格定義之模擬數據
-     * 確保欄位名稱與使用者要求完全一致
-     */
     const getMockData = (action, type) => {
-      if (action === 'getDashboard') return { success: true, counts: { association: 120, vendor: 45, general: 980, activities: 12 } };
+      if (action === 'getDashboard') return { success: true, counts: { association: 0, vendor: 0, general: 0, activities: 0 } };
       if (action === 'getMembers') {
-        let cols = [];
-        if (type === 'vendor') {
-          cols = ['序號', '會員編號', '廠商會員公司名稱', '公司統編', '公司負責人姓名', '聯絡窗口姓名', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
-        } else if (type === 'association') {
-          cols = ['序號', '會員編號', '身分', '姓名', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
-        } else {
-          cols = ['序號', '姓名', 'MAIL', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
-        }
-        
-        const mockRow = {};
-        cols.forEach(c => mockRow[c] = c.includes('次數') ? '0' : (c === 'MAIL' ? 'user@example.com' : `範例-${c}`));
-        mockRow['序號'] = 1;
-        
-        return { success: true, data: [mockRow] };
+        let cols = type === 'vendor' ? ['序號', '會員編號', '廠商會員公司名稱', '公司統編', '公司負責人姓名', '聯絡窗口姓名', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
+                   type === 'association' ? ['序號', '會員編號', '身分', '姓名', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
+                   ['序號', '姓名', 'MAIL', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
+        return { success: true, data: [{ "序號": "目前無真實資料連線", "說明": "請檢查 Cloudflare 變數設定" }] };
       }
       return { success: true, data: [] };
     };
@@ -124,144 +90,51 @@
 
       useEffect(() => { if (activeTab === 'dashboard') loadStats(); }, [activeTab]);
 
-      const loadStats = async () => { 
-        setLoading(true); 
-        const res = await callApi('getDashboard'); 
-        if (res.success) setStats(res.counts); 
-        setLoading(false); 
-      };
-
-      const loadList = async (type) => { 
-        setLoading(true); 
-        setEditingItem(null); 
-        setActiveTab(`members-${type}`); 
-        setMemberType(type); 
-        const res = await callApi('getMembers', { type }); 
-        if (res.success) setData(res.data); 
-        setLoading(false); 
-      };
-
-      const saveItem = async () => { 
-        setLoading(true); 
-        const res = await callApi('updateData', { type: memberType, data: JSON.stringify(editingItem) }); 
-        if (res.success) { 
-          setData(prev => prev.map(i => i.序號 === editingItem.序號 ? editingItem : i)); 
-          setEditingItem(null); 
-        } else {
-          alert("儲存失敗: " + (res.error || "未知錯誤"));
-        }
-        setLoading(false); 
-      };
+      const loadStats = async () => { setLoading(true); const res = await callApi('getDashboard'); if (res.success) setStats(res.counts); setLoading(false); };
+      const loadList = async (type) => { setLoading(true); setEditingItem(null); setActiveTab(`members-${type}`); setMemberType(type); const res = await callApi('getMembers', { type }); if (res.success) setData(res.data); setLoading(false); };
+      const saveItem = async () => { setLoading(true); const res = await callApi('updateData', { type: memberType, data: JSON.stringify(editingItem) }); if (res.success) { setData(prev => prev.map(i => i.序號 === editingItem.序號 ? editingItem : i)); setEditingItem(null); } setLoading(false); };
 
       return (
         <div className="flex h-screen overflow-hidden bg-white text-sm">
-          {/* Sidebar */}
           <aside className={`${isSidebarOpen ? 'w-52' : 'w-0'} sidebar-bg transition-all duration-200 flex flex-col shrink-0 z-20 overflow-hidden`}>
-            <div className="h-12 flex items-center px-4 border-b border-white/10 shrink-0 min-w-[208px]">
-              <span className="text-white font-bold text-xs tracking-widest uppercase">CRM ADMIN</span>
-            </div>
+            <div className="h-12 flex items-center px-4 border-b border-white/10 shrink-0 min-w-[208px]"><span className="text-white font-bold text-xs tracking-widest uppercase">CRM ADMIN</span></div>
             <nav className="flex-1 mt-2 overflow-y-auto min-w-[208px]">
               <SidebarLink label="儀表板" icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
               <div className="px-4 py-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest border-t border-white/5 mt-2">會員管理模組</div>
-              <SidebarLink label="協會會員清冊" icon="building" active={activeTab === 'members-association'} onClick={() => loadList('association')} />
-              <SidebarLink label="廠商會員清冊" icon="users" active={activeTab === 'members-vendor'} onClick={() => loadList('vendor')} />
-              <SidebarLink label="一般會員清冊" icon="userCircle" active={activeTab === 'members-general'} onClick={() => loadList('general')} />
+              <SidebarLink label="協會會員" icon="building" active={activeTab === 'members-association'} onClick={() => loadList('association')} />
+              <SidebarLink label="廠商會員" icon="users" active={activeTab === 'members-vendor'} onClick={() => loadList('vendor')} />
+              <SidebarLink label="一般會員" icon="userCircle" active={activeTab === 'members-general'} onClick={() => loadList('general')} />
             </nav>
           </aside>
-
-          {/* Main Content Area */}
           <main className="flex-1 flex flex-col overflow-hidden relative">
             <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-10 bg-white">
               <div className="flex items-center space-x-4">
-                <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-1 border hover:bg-gray-100 transition-colors">
-                  <Icon name="menu" size={16} />
-                </button>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {CONFIG.GAS_URL ? "LIVE MODE" : "TEST MODE"} <span className="mx-1">/</span> {activeTab}
-                </span>
-              </div>
-              <div className="relative border border-gray-300 bg-gray-50">
-                <Icon name="search" size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="快速搜尋..." className="pl-8 pr-2 py-1 text-xs focus:outline-none w-48 bg-transparent" />
+                <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-1 border hover:bg-gray-100 transition-colors"><Icon name="menu" size={16} /></button>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{CONFIG.GAS_URL ? "REAL-TIME CONNECTED" : "LOCAL TEST MODE"}</span>
               </div>
             </header>
-
             <div className="flex-1 overflow-auto bg-[#fafafa]">
-              {loading ? (
-                <div className="flex items-center justify-center h-full text-gray-300 font-bold tracking-widest animate-pulse italic">SYNCHRONIZING DATA...</div>
-              ) : editingItem ? (
-                /* --- RAGIC 全畫面詳情展開頁面 --- */
+              {loading ? <div className="flex items-center justify-center h-full text-gray-300 font-bold tracking-widest animate-pulse">SYNCHRONIZING...</div> : 
+               editingItem ? (
                 <div className="h-full flex flex-col bg-[#f1f3f5] animate-in fade-in duration-200">
                   <div className="p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
-                    <div className="flex items-center space-x-4">
-                      <button onClick={() => setEditingItem(null)} className="p-2 border border-gray-300 bg-white hover:bg-gray-50 flex items-center space-x-2 text-xs font-bold transition-all">
-                        <Icon name="chevronLeft" size={14} />
-                        <span>返回清單</span>
-                      </button>
-                      <h3 className="font-bold text-sm text-gray-700 uppercase tracking-tight">編輯詳細紀錄: <span className="text-[#06C755]">#{editingItem.序號}</span></h3>
-                    </div>
-                    <button onClick={saveItem} className="bg-[#06C755] text-white px-12 py-2 text-xs font-bold flex items-center space-x-2 active:scale-95 transition-all shadow-md">
-                      <Icon name="save" size={14} />
-                      <span>儲存變更</span>
-                    </button>
+                    <button onClick={() => setEditingItem(null)} className="p-2 border border-gray-300 bg-white hover:bg-gray-50 flex items-center space-x-2 text-xs font-bold transition-all"><Icon name="chevronLeft" size={14} /><span>返回清單</span></button>
+                    <button onClick={saveItem} className="bg-[#06C755] text-white px-12 py-2 text-xs font-bold flex items-center space-x-2 active:scale-95 transition-all shadow-md"><Icon name="save" size={14} /><span>儲存變更</span></button>
                   </div>
-                  <div className="flex-1 p-8 overflow-auto">
-                    <div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm">
-                      <div className="detail-grid">
-                        {Object.keys(editingItem).map(k => (
-                          <div key={k} className="detail-cell">
-                            <div className="detail-label">{k}</div>
-                            <div className="detail-value">
-                              <input 
-                                className="detail-input" 
-                                value={editingItem[k] || ''} 
-                                onChange={e => setEditingItem({...editingItem, [k]: e.target.value})} 
-                                disabled={k.includes('序號') || k.includes('編號') || k==='userid'} 
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <div className="flex-1 p-8 overflow-auto"><div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm"><div className="detail-grid">{Object.keys(editingItem).map(k => (
+                    <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="detail-value"><input className="detail-input" value={editingItem[k] || ''} onChange={e => setEditingItem({...editingItem, [k]: e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
+                  ))}</div></div></div>
                 </div>
                ) : activeTab === 'dashboard' ? (
-                /* --- 數據儀表板 --- */
                 <div className="grid grid-cols-1 md:grid-cols-4 border-b bg-white">
-                  <DashBox title="協會會員" count={stats.association} color="border-blue-500" />
-                  <DashBox title="廠商會員" count={stats.vendor} color="border-orange-500" />
-                  <DashBox title="一般會員" count={stats.general} color="border-green-500" />
-                  <DashBox title="活動總計" count={stats.activities} color="border-purple-500" />
+                  <DashBox title="協會會員" count={stats.association} color="border-blue-500" /><DashBox title="廠商會員" count={stats.vendor} color="border-orange-500" /><DashBox title="一般會員" count={stats.general} color="border-green-500" /><DashBox title="活動總計" count={stats.activities} color="border-purple-500" />
                 </div>
                ) : (
-                /* --- 資料表格清單 --- */
                 <div className="h-full flex flex-col">
                   <div className="overflow-auto flex-1">
                     <table className="crm-table bg-white">
-                      <thead className="sticky top-0 z-10">
-                        <tr>
-                          {data.length > 0 && Object.keys(data[0])
-                            .filter(k => k !== 'MAIL')
-                            .slice(0, 10)
-                            .map(k => <th key={k}>{k}</th>)
-                          }
-                          <th className="text-center sticky right-0 bg-[#f1f3f5] border-l">管理選項</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.map((r, i) => (
-                          <tr key={i}>
-                            {Object.keys(r)
-                              .filter(k => k !== 'MAIL')
-                              .slice(0, 10)
-                              .map((k, j) => <td key={j}>{String(r[k])}</td>)
-                            }
-                            <td className="text-center sticky right-0 bg-white border-l shadow-[-4px_0_12px_rgba(0,0,0,0.03)]">
-                              <button onClick={() => setEditingItem(r)} className="text-blue-600 font-bold text-xs hover:underline px-4">編輯詳細</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
+                      <thead className="sticky top-0 z-10"><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-[#f1f3f5] border-l">管理選項</th></tr></thead>
+                      <tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l"><button onClick={() => setEditingItem(r)} className="text-blue-600 font-bold text-xs hover:underline px-4">編輯詳細</button></td></tr>))}</tbody>
                     </table>
                   </div>
                 </div>
@@ -272,20 +145,8 @@
       );
     };
 
-    const SidebarLink = ({ label, icon, active, onClick }) => (
-      <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-4 transition-all border-l-4 ${active ? 'sidebar-active border-white/20' : 'text-gray-500 hover:bg-[#2a2a2a] border-transparent'}`}>
-        <Icon name={icon} size={16} />
-        <span className="text-xs font-bold tracking-tight">{label}</span>
-      </button>
-    );
-
-    const DashBox = ({ title, count, color }) => (
-      <div className={`p-10 border-r last:border-r-0 border-b-8 ${color} hover:bg-gray-50 transition-all cursor-default`}>
-        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div>
-        <div className="text-4xl font-black text-gray-800 tracking-tighter">{count.toLocaleString()}</div>
-      </div>
-    );
-
+    const SidebarLink = ({ label, icon, active, onClick }) => (<button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-4 transition-all border-l-4 ${active ? 'sidebar-active border-white/20' : 'text-gray-500 hover:bg-[#2a2a2a] border-transparent'}`}><Icon name={icon} size={16} /><span className="text-xs font-bold tracking-tight">{label}</span></button>);
+    const DashBox = ({ title, count, color }) => (<div className={`p-10 border-r last:border-r-0 border-b-8 ${color} hover:bg-gray-50 transition-all cursor-default`}><div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div><div className="text-4xl font-black text-gray-800 tracking-tighter">{count.toLocaleString()}</div></div>);
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
