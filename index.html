@@ -55,7 +55,7 @@
 
     const callApi = async (action, params = {}) => {
       if (!CONFIG.GAS_URL) {
-        console.warn("未偵測到 GAS_URL，自動進入測試模式。");
+        console.warn("未偵測到有效 GAS_URL，目前為測試模式。");
         return getMockData(action, params.type);
       }
       try {
@@ -64,6 +64,7 @@
         if (!response.ok) throw new Error("API 請求失敗");
         return await response.json();
       } catch (error) { 
+        console.error("連線錯誤:", error);
         return getMockData(action, params.type);
       }
     };
@@ -74,7 +75,7 @@
         let cols = type === 'vendor' ? ['序號', '會員編號', '廠商會員公司名稱', '公司統編', '公司負責人姓名', '聯絡窗口姓名', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
                    type === 'association' ? ['序號', '會員編號', '身分', '姓名', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
                    ['序號', '姓名', 'MAIL', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
-        return { success: true, data: [{ "序號": "目前無真實資料連線", "說明": "請檢查 Cloudflare 變數設定" }] };
+        return { success: true, data: [{ "序號": "尚未連線", "說明": "請在 Cloudflare 設定 GAS_URL 變數" }] };
       }
       return { success: true, data: [] };
     };
@@ -100,7 +101,7 @@
             <div className="h-12 flex items-center px-4 border-b border-white/10 shrink-0 min-w-[208px]"><span className="text-white font-bold text-xs tracking-widest uppercase">CRM ADMIN</span></div>
             <nav className="flex-1 mt-2 overflow-y-auto min-w-[208px]">
               <SidebarLink label="儀表板" icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-              <div className="px-4 py-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest border-t border-white/5 mt-2">會員管理模組</div>
+              <div className="px-4 py-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest border-t border-white/5 mt-2 text-white/50">會員清冊管理</div>
               <SidebarLink label="協會會員" icon="building" active={activeTab === 'members-association'} onClick={() => loadList('association')} />
               <SidebarLink label="廠商會員" icon="users" active={activeTab === 'members-vendor'} onClick={() => loadList('vendor')} />
               <SidebarLink label="一般會員" icon="userCircle" active={activeTab === 'members-general'} onClick={() => loadList('general')} />
@@ -110,11 +111,11 @@
             <header className="h-12 border-b flex items-center justify-between px-4 shrink-0 z-10 bg-white">
               <div className="flex items-center space-x-4">
                 <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-1 border hover:bg-gray-100 transition-colors"><Icon name="menu" size={16} /></button>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{CONFIG.GAS_URL ? "REAL-TIME CONNECTED" : "LOCAL TEST MODE"}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{CONFIG.GAS_URL ? "DATABASE CONNECTED" : "OFFLINE TEST MODE"}</span>
               </div>
             </header>
             <div className="flex-1 overflow-auto bg-[#fafafa]">
-              {loading ? <div className="flex items-center justify-center h-full text-gray-300 font-bold tracking-widest animate-pulse">SYNCHRONIZING...</div> : 
+              {loading ? <div className="flex items-center justify-center h-full text-gray-300 font-bold tracking-widest animate-pulse italic">SYNCHRONIZING...</div> : 
                editingItem ? (
                 <div className="h-full flex flex-col bg-[#f1f3f5] animate-in fade-in duration-200">
                   <div className="p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
