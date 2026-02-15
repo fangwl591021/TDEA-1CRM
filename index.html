@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TDEA CRM - LINE OA Style</title>
+  <title>TDEA CRM - LINE OA Manager Style</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -18,20 +18,21 @@
       margin: 0; 
     }
     
-    /* 規格鎖定：無圓角硬邊框 */
+    /* 規格鎖定：無圓角 */
     * { border-radius: 0 !important; }
 
     .line-green { color: #06C755; }
     .line-green-bg { background-color: #06C755; }
     .line-green-border { border-color: #06C755; }
     
-    /* 側邊欄樣式 - LINE OA 淺色風格 */
+    /* 側邊欄收合動畫 */
+    .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .sidebar-light { background-color: #F8F9FA; border-right: 1px solid #E5E7EB; }
-    .sidebar-item { color: #555; transition: all 0.2s; }
+    .sidebar-item { color: #555; white-space: nowrap; overflow: hidden; }
     .sidebar-item:hover { background-color: #EDF2F7; color: #06C755; }
     .sidebar-active { background-color: #FFFFFF; color: #06C755 !important; border-left: 4px solid #06C755; font-weight: 700; }
     
-    /* 表格樣式 - 高密度 */
+    /* 表格樣式 */
     .crm-table { width: 100%; border-collapse: collapse; background: white; }
     .crm-table th { 
       background-color: #F9FAFB; 
@@ -48,9 +49,7 @@
       border-bottom: 1px solid #F3F4F6; 
       padding: 10px 15px; 
       font-size: 13px; 
-      white-space: nowrap; 
     }
-    .crm-table tr:hover { background-color: #F9FAFB; }
 
     /* RAGIC 詳細編輯格線 */
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
@@ -65,21 +64,12 @@
       font-weight: 700; 
       color: #4B5563; 
     }
-    .detail-value { flex: 1; display: flex; align-items: center; background: white; }
-    .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; }
+    .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
     .detail-input:focus { background-color: #F0FDF4; }
     .detail-input:disabled { background-color: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
 
-    /* 卡片樣式 */
-    .oa-card { background: white; border: 1px solid #E5E7EB; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-
-    /* 收合動畫 */
-    .collapsible-area { 
-      transition: max-height 0.4s cubic-bezier(0, 1, 0, 1), opacity 0.3s; 
-      overflow: hidden; 
-    }
-    .collapsible-hidden { max-height: 0; opacity: 0; pointer-events: none; margin-bottom: 0 !important; }
-    .collapsible-visible { max-height: 1000px; opacity: 1; }
+    /* 收合區域動畫 */
+    .collapsible-stats { transition: max-height 0.3s ease-in-out, opacity 0.2s; overflow: hidden; }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #D1D5DB; }
@@ -96,10 +86,11 @@
         home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
         users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
         calendar: "M8 7V3m8 4V3M3 11h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
-        menu: "M4 6h16M4 12h16M4 18h16",
-        chevronUp: "M5 15l7-7 7 7",
-        chevronDown: "M19 9l-7 7-7-7",
-        save: "M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4",
+        chevronLeft: "M15 19l-7-7 7-7",
+        chevronRight: "M9 5l7 7-7 7",
+        chevronUp: "M18 15l-6-6-6 6",
+        chevronDown: "M6 9l6 6 6-6",
+        save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z",
         search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
       };
       return (
@@ -111,15 +102,16 @@
 
     const App = () => {
       const [activeTab, setActiveTab] = useState('dashboard');
+      const [isSidebarCollapsed, setSidebarCollapsed] = useState(false); // 側邊欄左右收合
+      const [isStatsExpanded, setStatsExpanded] = useState(true); // 儀表板上下收合
       const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
       const [data, setData] = useState([]);
       const [loading, setLoading] = useState(false);
-      const [isDashExpanded, setDashExpanded] = useState(true); // 儀表板收合狀態
       const [editingItem, setEditingItem] = useState(null);
 
       const getMockData = (action, type) => {
         if (action === 'getDashboard') return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 } };
-        if (action === 'getMembers') return { success: true, data: Array.from({length: 20}, (_, i) => ({'序號': i + 1, '姓名': `用戶 ${i+1}`, 'MAIL': `user${i}@mail.com`, '會員編號': `B${100+i}`, '行動電話': '0900-123-456', '會員資格(Y/N)': 'Y', 'userid': `U_${i}xyz`, '本業報名': i})) };
+        if (action === 'getMembers') return { success: true, data: Array.from({length: 15}, (_, i) => ({'序號': i + 1, '姓名': `LINE User ${i+1}`, 'MAIL': `user${i}@mail.com`, '會員編號': `A${100+i}`, '行動電話': '0912-345-678', '會員資格': 'Y', 'userid': `U${i}xyz`, '活動次數': i})) };
         return { success: true };
       };
 
@@ -143,68 +135,69 @@
       };
 
       return (
-        <div className="flex h-screen overflow-hidden">
-          {/* Sidebar - LINE OA Style */}
-          <aside className="w-60 sidebar-light flex flex-col shrink-0 z-20">
-            <div className="h-16 flex items-center px-6 border-b border-gray-200">
-              <div className="w-8 h-8 line-green-bg flex items-center justify-center mr-3">
-                <span className="text-white text-xs font-black">OA</span>
+        <div className="flex h-screen overflow-hidden bg-[#F4F5F7]">
+          {/* Sidebar - LINE OA Style with Horizontal Collapse */}
+          <aside className={`sidebar-light flex flex-col shrink-0 z-20 sidebar-transition ${isSidebarCollapsed ? 'w-16' : 'w-60'}`}>
+            <div className="h-16 flex items-center px-4 border-b border-gray-200">
+              <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0">
+                <span className="text-white text-[10px] font-black">TDEA</span>
               </div>
-              <span className="font-bold text-gray-700 tracking-tight">TDEA 管理中心</span>
+              {!isSidebarCollapsed && <span className="ml-3 font-bold text-gray-700 text-sm truncate">管理系統</span>}
             </div>
-            <nav className="flex-1 py-4">
-              <SidebarLink label="主頁概覽" icon="home" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-              <div className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">資料模組</div>
-              <SidebarLink label="本業會員" icon="users" active={activeTab === 'association'} onClick={() => loadList('association')} />
-              <SidebarLink label="廠商會員" icon="users" active={activeTab === 'vendor'} onClick={() => loadList('vendor')} />
-              <SidebarLink label="一般註冊" icon="users" active={activeTab === 'general'} onClick={() => loadList('general')} />
-              <div className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">活動管理</div>
-              <SidebarLink label="活動 LIST" icon="calendar" active={activeTab === 'activities'} onClick={() => loadList('activities')} />
+            
+            <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
+              <SidebarLink label="主頁概覽" icon="home" collapsed={isSidebarCollapsed} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+              {!isSidebarCollapsed && <div className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">資料庫</div>}
+              <SidebarLink label="本業會員" icon="users" collapsed={isSidebarCollapsed} active={activeTab === 'association'} onClick={() => loadList('association')} />
+              <SidebarLink label="廠商會員" icon="users" collapsed={isSidebarCollapsed} active={activeTab === 'vendor'} onClick={() => loadList('vendor')} />
+              <SidebarLink label="一般註冊" icon="users" collapsed={isSidebarCollapsed} active={activeTab === 'general'} onClick={() => loadList('general')} />
             </nav>
-            <div className="p-4 border-t border-gray-200 text-center">
-               <button className="text-[11px] text-gray-400 font-bold hover:text-[#06C755]">登出</button>
-            </div>
+
+            {/* 收合選單按鈕 (仿照 LINE OA 截圖左下角) */}
+            <button 
+              onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+              className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500 transition-colors"
+            >
+              <Icon name={isSidebarCollapsed ? "chevronRight" : "chevronLeft"} size={16} />
+              {!isSidebarCollapsed && <span className="ml-3 text-xs font-bold">收合選單</span>}
+            </button>
           </aside>
 
-          {/* Main Content */}
+          {/* Main Area */}
           <main className="flex-1 flex flex-col overflow-hidden">
-            {/* Top Navbar */}
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
-              <div className="flex items-center space-x-6 h-full">
+              <div className="flex items-center h-full">
                 <div className="h-full border-b-2 line-green-border flex items-center px-2">
-                  <span className="text-sm font-bold line-green uppercase tracking-wide">{activeTab.toUpperCase()}</span>
+                  <span className="text-sm font-bold line-green uppercase tracking-wide">{activeTab}</span>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center bg-gray-100 px-3 py-1.5 border border-gray-200">
                   <Icon name="search" size={14} className="text-gray-400 mr-2" />
-                  <input type="text" placeholder="搜尋..." className="bg-transparent text-xs focus:outline-none w-48" />
+                  <input type="text" placeholder="關鍵字..." className="bg-transparent text-xs focus:outline-none w-40" />
                 </div>
-                <div className={`px-3 py-1 text-[10px] font-bold border ${CONFIG.GAS_URL ? 'line-green line-green-border' : 'text-gray-400 border-gray-300'}`}>
-                  {CONFIG.GAS_URL ? "LIVE" : "SIMULATED"}
+                <div className={`px-2 py-0.5 text-[10px] font-bold border ${CONFIG.GAS_URL ? 'line-green line-green-border' : 'text-gray-400 border-gray-300'}`}>
+                  {CONFIG.GAS_URL ? "ONLINE" : "PREVIEW"}
                 </div>
               </div>
             </header>
 
             <div className="flex-1 overflow-auto p-8">
               {loading ? (
-                <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic">資料同步中...</div>
+                <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest">Synchronizing...</div>
               ) : editingItem ? (
-                /* --- RAGIC 全畫面展開編輯 (無圓角、高密度) --- */
-                <div className="h-full flex flex-col animate-in fade-in duration-200">
+                /* --- RAGIC 全畫面展開編輯 --- */
+                <div className="animate-in fade-in duration-200 h-full flex flex-col">
                   <div className="mb-6 flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                      <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center">
-                        <Icon name="chevronDown" size={14} className="rotate-90 mr-2" />返回
-                      </button>
-                      <h2 className="text-xl font-bold text-gray-800">資料編輯: <span className="line-green">#{editingItem.序號}</span></h2>
-                    </div>
-                    <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-md active:scale-95 transition-all flex items-center">
+                    <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center">
+                      <Icon name="chevronLeft" size={14} className="mr-2" />返回名冊
+                    </button>
+                    <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center">
                       <Icon name="save" size={14} className="mr-2" />儲存變更
                     </button>
                   </div>
-                  <div className="oa-card p-0">
-                    <div className="bg-gray-50 border-b border-gray-200 p-4 font-bold text-[10px] text-gray-500 uppercase tracking-widest">Detail View Specifications</div>
+                  <div className="bg-white border border-gray-200 shadow-sm">
+                    <div className="bg-gray-50 border-b border-gray-200 p-4 font-bold text-[10px] text-gray-500 uppercase tracking-tighter">Member Specification Grid</div>
                     <div className="detail-grid">
                       {Object.keys(editingItem).map(k => (
                         <div key={k} className="detail-cell">
@@ -223,54 +216,53 @@
                   </div>
                 </div>
               ) : activeTab === 'dashboard' ? (
-                /* --- Dashboard 與核心收合功能 --- */
-                <div className="flex flex-col space-y-8 h-full">
+                /* --- Dashboard 與 上下收合 --- */
+                <div className="flex flex-col space-y-8">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">主頁數據中心</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">數據分析中心</h2>
                     <button 
-                      onClick={() => setDashExpanded(!isDashExpanded)} 
-                      className="px-3 py-1.5 border border-gray-300 text-[11px] font-bold text-gray-500 hover:text-[#06C755] hover:border-[#06C755] flex items-center bg-white"
+                      onClick={() => setStatsExpanded(!isStatsExpanded)}
+                      className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green"
                     >
-                      {isDashExpanded ? "收合數據" : "展開數據"}
-                      <Icon name={isDashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" />
+                      {isStatsExpanded ? "收合數據" : "展開數據"}
+                      <Icon name={isStatsExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" />
                     </button>
                   </div>
                   
-                  {/* 收合區塊 */}
-                  <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-area ${isDashExpanded ? 'collapsible-visible mb-8' : 'collapsible-hidden'}`}>
-                    <StatCard title="本業會員" value={stats.association} label="會員總數" color="border-l-4 line-green-border" />
-                    <StatCard title="廠商會員" value={stats.vendor} label="合作夥伴" color="border-l-4 border-emerald-500" />
-                    <StatCard title="一般註冊" value={stats.general} label="Line 好友" color="border-l-4 border-green-400" />
-                    <StatCard title="活動總計" value={stats.activities} label="已辦理活動" color="border-l-4 border-lime-500" />
+                  <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${isStatsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <StatCard title="本業會員" value={stats.association} label="Active Users" />
+                    <StatCard title="廠商會員" value={stats.vendor} label="Business" />
+                    <StatCard title="一般註冊" value={stats.general} label="Followers" />
+                    <StatCard title="活動總計" value={stats.activities} label="Total Events" />
                   </div>
 
-                  <div className="oa-card p-16 flex flex-col items-center justify-center border-dashed border-2 grow">
-                    <Icon name="home" size={48} className="text-gray-200 mb-4" />
-                    <p className="text-gray-300 font-bold tracking-[1em] uppercase ml-[1em]">TDEA CRM - Powered by Line OA Style</p>
+                  <div className="bg-white border border-gray-200 border-dashed p-20 flex flex-col items-center justify-center text-gray-100">
+                    <Icon name="home" size={80} />
+                    <p className="mt-4 text-gray-300 font-bold tracking-[0.5em] uppercase">TDEA CRM Management</p>
                   </div>
                 </div>
               ) : (
-                /* --- 名冊清單 --- */
-                <div className="oa-card flex flex-col h-full overflow-hidden">
-                  <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">資料總清單 ({data.length} 筆)</span>
+                /* --- List View --- */
+                <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full">
+                  <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">會員資料清單 (共 {data.length} 筆)</span>
                     <button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 transition-all">
                        + 新增紀錄
                     </button>
                   </div>
-                  <div className="overflow-auto flex-1 bg-white">
+                  <div className="overflow-auto flex-1">
                     <table className="crm-table">
                       <thead>
                         <tr>
                           {data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}
-                          <th className="text-center sticky right-0 bg-gray-50 border-l">管理</th>
+                          <th className="text-center sticky right-0 bg-gray-50 shadow-[-4px_0_10px_rgba(0,0,0,0.02)] border-l border-gray-200">管理</th>
                         </tr>
                       </thead>
                       <tbody>
                         {data.map((r, i) => (
                           <tr key={i}>
                             {Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}
-                            <td className="text-center sticky right-0 bg-white border-l shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                            <td className="text-center sticky right-0 bg-white shadow-[-4px_0_10px_rgba(0,0,0,0.02)] border-l border-gray-200">
                               <button onClick={() => setEditingItem(r)} className="line-green font-bold text-xs hover:underline px-4 py-2">編輯詳細</button>
                             </td>
                           </tr>
@@ -286,18 +278,18 @@
       );
     };
 
-    const SidebarLink = ({ label, icon, active, onClick }) => (
-      <button onClick={onClick} className={`w-full flex items-center px-6 py-4 text-sm sidebar-item ${active ? 'sidebar-active shadow-sm' : ''}`}>
-        <Icon name={icon} size={18} className="mr-3" />
-        <span className="tracking-tight">{label}</span>
+    const SidebarLink = ({ label, icon, active, collapsed, onClick }) => (
+      <button onClick={onClick} className={`w-full flex items-center py-4 sidebar-item ${active ? 'sidebar-active' : ''} ${collapsed ? 'justify-center' : 'px-6'}`}>
+        <Icon name={icon} size={20} className={collapsed ? '' : 'mr-3'} />
+        {!collapsed && <span className="text-sm tracking-tight">{label}</span>}
       </button>
     );
 
-    const StatCard = ({ title, value, label, color }) => (
-      <div className={`oa-card p-6 ${color} bg-white`}>
+    const StatCard = ({ title, value, label }) => (
+      <div className="bg-white border border-gray-200 p-6 border-l-4 border-l-[#06C755]">
         <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</div>
         <div className="text-3xl font-black text-gray-800 mb-1">{value.toLocaleString()}</div>
-        <div className="text-[10px] text-gray-400 font-medium">{label}</div>
+        <div className="text-[10px] text-gray-400 font-medium uppercase">{label}</div>
       </div>
     );
 
