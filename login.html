@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TDEA CRM - 系統登入</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; background-color: #F4F5F7; margin: 0; }
+    * { border-radius: 0 !important; } /* 規格鎖定：無圓角 */
+    .line-green-bg { background-color: #06C755; }
+    .line-green-text { color: #06C755; }
+    .input-focus:focus { border-color: #06C755; outline: none; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <!-- 載入中狀態 -->
+  <div id="loader" class="text-center space-y-4">
+    <div class="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
+    <p class="text-gray-400 font-bold text-xs tracking-widest uppercase">Initializing Auth...</p>
+  </div>
+
+  <!-- 綁定會員區 -->
+  <div id="mainForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden">
+    <div class="p-8 border-b border-gray-100 text-center">
+      <div class="w-16 h-16 line-green-bg flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800">TDEA 會員身分綁定</h1>
+      <p class="text-xs text-gray-400 mt-2 tracking-wide uppercase">Member Verification Required</p>
+    </div>
+
+    <div class="p-8 space-y-6">
+      <!-- Profile Info -->
+      <div class="flex items-center space-x-3 bg-[#F8F9FA] p-3 border border-gray-100">
+        <img id="avatar" class="w-10 h-10 border border-gray-200" src="" alt="avatar" />
+        <p id="lineName" class="font-bold text-gray-700">-</p>
+      </div>
+
+      <!-- Identity Selection -->
+      <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200">
+        <button onclick="setType('本業會員')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">本業</button>
+        <button onclick="setType('廠商會員')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">廠商</button>
+        <button onclick="setType('一般會員')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">一般</button>
+      </div>
+
+      <!-- Inputs -->
+      <div id="idInputArea" class="space-y-4">
+        <div id="memberIdGroup">
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號 (Member ID)</label>
+          <input id="memberId" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="例如: A001" />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼 (Mobile Phone)</label>
+          <input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912-345-678" />
+        </div>
+      </div>
+
+      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-80 transition-all">
+        確認綁定並登入
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = "2005868456-Rt5YK7qL";
+    // 優先讀取全域變數，若無則為空
+    const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
+    let curType = "本業會員", uid = "", displayName = "";
+
+    const callApi = async (action, data) => {
+      const url = `${CONFIG.GAS_URL}?action=${action}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify({ action, ...data })
+      });
+      return await res.json();
+    };
+
+    window.onload = async () => {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const p = await liff.getProfile();
+        uid = p.userId;
+        displayName = p.displayName;
+        document.getElementById('avatar').src = p.pictureUrl;
+        document.getElementById('lineName').textContent = p.displayName;
+
+        // 檢查權限
+        const check = await callApi('check', { userId: uid });
+        if (check.status === 'admin' || check.status === 'member') {
+          // 導向主程式
+          window.location.replace("index.html");
+        } else {
+          document.getElementById('loader').classList.add('hidden');
+          document.getElementById('mainForm').classList.remove('hidden');
+          setType('本業會員');
+        }
+      } catch (e) { alert("連線錯誤：" + e.message); }
+    };
+
+    function setType(t) {
+      curType = t;
+      const btns = { '本業會員': 'btn-assoc', '廠商會員': 'btn-vendor', '一般會員': 'btn-guest' };
+      Object.keys(btns).forEach(key => {
+        const el = document.getElementById(btns[key]);
+        if (key === t) {
+          el.className = "py-3 text-xs font-black line-green-bg text-white border-[#06C755]";
+        } else {
+          el.className = "py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]";
+        }
+      });
+      document.getElementById('memberIdGroup').style.display = (t === '一般會員') ? 'none' : 'block';
+    }
+
+    async function submitBind() {
+      const mid = document.getElementById('memberId').value.trim();
+      const tel = document.getElementById('phone').value.trim();
+      if (!tel) return alert("請輸入手機號碼");
+      if (curType !== '一般會員' && !mid) return alert("請輸入會員編號");
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = "資料同步中...";
+
+      try {
+        const res = await callApi('bindMember', { 
+          userId: uid, type: curType, memberId: mid, phone: tel, name: displayName 
+        });
+        if (res.success) {
+          alert("綁定成功！");
+          window.location.replace("index.html");
+        } else {
+          alert("綁定失敗：" + res.message);
+          btn.disabled = false; btn.textContent = "確認綁定並登入";
+        }
+      } catch (e) { alert("系統異常"); btn.disabled = false; }
+    }
+  </script>
+</body>
+</html>
