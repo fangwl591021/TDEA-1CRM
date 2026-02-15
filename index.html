@@ -20,45 +20,49 @@
       margin: 0;
     }
 
-    /* 規格鎖定：強制取消所有圓角 */
+    /* 規格鎖定：全域取消圓角 (Ragic Style) */
     * { border-radius: 0 !important; }
 
     .line-green { background-color: #06C755; }
     
-    /* 側邊欄樣式 - 專業深色 (規格鎖定) */
+    /* 側邊欄樣式 - 專業深色 */
     .sidebar-bg { background-color: #1a1a1a; }
     .sidebar-item:hover { background-color: #2a2a2a; }
     .sidebar-active { background-color: #06C755 !important; color: #fff !important; }
 
-    /* 表格樣式 - 高密度 (Ragic 風格) */
+    /* 表格樣式 - 高密度 Ragic Style */
     .crm-table { width: 100%; border-collapse: collapse; }
     .crm-table th { 
-      background-color: #f8f9fa; 
+      background-color: #f1f3f5; 
       border: 1px solid #dee2e6; 
-      padding: 8px 12px; 
+      padding: 10px 12px; 
       font-size: 13px; 
       font-weight: 700;
       color: #495057;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      text-align: left;
     }
     .crm-table td { 
       border: 1px solid #dee2e6; 
-      padding: 6px 12px; 
+      padding: 8px 12px; 
       font-size: 13px;
       white-space: nowrap;
     }
-    .crm-table tr:hover { background-color: #f1f3f5; }
+    .crm-table tr:hover { background-color: #f8f9fa; }
 
-    /* Modal 覆蓋層 */
-    .modal-overlay { background-color: rgba(0, 0, 0, 0.6); }
-    
+    /* 詳細資料格線佈局 (全螢幕展開) */
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid #dee2e6; border-left: 1px solid #dee2e6; }
+    .detail-cell { display: flex; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; min-height: 40px; }
+    .detail-label { width: 140px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; padding: 10px; font-size: 12px; font-weight: 700; color: #666; flex-shrink: 0; display: flex; align-items: center; }
+    .detail-value { flex-grow: 1; display: flex; align-items: center; }
+    .detail-input { width: 100%; height: 100%; padding: 0 12px; border: none; font-size: 14px; outline: none; }
+    .detail-input:focus { background-color: #fffde7; }
+    .detail-input:disabled { background-color: #f1f3f5; color: #999; cursor: not-allowed; }
+
     /* 滾動條優化 */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #adb5bd; }
-    ::-webkit-scrollbar-thumb:hover { background: #868e96; }
+    ::-webkit-scrollbar-thumb { background: #ccc; }
+    ::-webkit-scrollbar-thumb:hover { background: #bbb; }
   </style>
 </head>
 <body>
@@ -68,8 +72,14 @@
     const { useState, useEffect } = React;
 
     /**
-     * 圖標組件 (規格鎖定：內嵌 SVG)
+     * 規格鎖定：環境變數管理
+     * 優先讀取全域配置(Cloudflare 注入用)，其次為手動設定
      */
+    const CONFIG = {
+      GAS_URL: window.CRM_CONFIG?.GAS_URL || "https://script.google.com/macros/s/您的ID/exec",
+      VERSION: "1.2.0"
+    };
+
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
         dashboard: "M3 3h7v7H3V3zm11 0h7v7h-7V3zm0 11h7v7h-7v-7zm-11 0h7v7H3v-7z",
@@ -78,15 +88,12 @@
         search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
         menu: "M3 12h18M3 6h18M3 18h18",
         logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9",
-        exchange: "M7 21l-4-4m0 0l4-4m-4 4h18M17 3l4 4m0 0l-4 4m4-4H3",
         building: "M3 21h18M3 7v14m18-14v14M3 7l9-4 9 4M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6",
         userCircle: "M12 12a5 5 0 100-10 5 5 0 000 10zm-7 8a7 7 0 0114 0",
-        x: "M18 6L6 18M6 6l12 12",
         save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z",
         plus: "M12 5v14M5 12h14",
-        info: "M12 16v-4m0-4h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z"
+        chevronLeft: "M15 18l-6-6 6-6"
       };
-
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <path d={paths[name] || ""} />
@@ -94,15 +101,13 @@
       );
     };
 
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbweQRl2sMA9hsVRg1ea1Djjwxbsapow9_3-Ru40J1xEPZEvdoZcIObIt1pz-i-n_ojz/exec"; 
-
     const callApi = async (action, params = {}) => {
       try {
         const queryParams = new URLSearchParams({ action, ...params }).toString();
-        if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes("您的ID")) {
-          return getMockData(action, params.type);
-        }
-        const response = await fetch(`${GAS_WEB_APP_URL}?${queryParams}`);
+        // 如果網址尚未配置且在預覽環境，則回傳模擬資料
+        if (CONFIG.GAS_URL.includes("您的ID")) return getMockData(action, params.type);
+        
+        const response = await fetch(`${CONFIG.GAS_URL}?${queryParams}`);
         return await response.json();
       } catch (error) {
         console.error("API Error:", error);
@@ -111,265 +116,210 @@
     };
 
     const getMockData = (action, type) => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          if (action === 'getDashboard') {
-            resolve({ success: true, counts: { association: 125, vendor: 48, general: 1042, activities: 15 } });
-          } else if (action === 'getMembers') {
-            let data = [];
-            for (let i = 1; i <= 20; i++) {
-              if (type === 'association') {
-                data.push({ '序號': i, '會員編號': `A${1000+i}`, '身分': '會員', '姓名': `協會成員${i}`, '性別': i%2?'男':'女', '會員資格(Y/N)': 'Y', '活動報名次數': i, '講座報名次數': '2', '教學報名次數': '1', '聯誼報名次數': '3', '會議報名次數': '10', '備註': '-', 'userid': `UID${i}`, '是否綁定': 'Y', '行動電話': `0912-000-${i}` });
-              } else if (type === 'vendor') {
-                data.push({ '序號': i, '會員編號': `V${2000+i}`, '公司名稱': `科技公司${i}`, '公司統編': '12345678', '公司負責人姓名': '負責人', '聯絡窗口姓名': '窗口', '會員資格(Y/N)': 'Y', '活動報名次數': '5', '講座報名次數': '1', '教學報名次數': '0', '聯誼報名次數': '1', '會議報名次數': '2', '備註': '', 'userid': `UIDV${i}`, '是否綁定': 'Y', '行動電話': '0988-111-222' });
-              } else {
-                data.push({ '序號': i, '姓名': `一般會員${i}`, 'MAIL': `user${i}@mail.com`, '性別': '女', '會員資格(Y/N)': 'N', '活動報名次數': '0', '講座報名次數': '0', '教學報名次數': '0', '聯誼報名次數': '0', '會議報名次數': '0', '備註': '', 'userid': `UIDG${i}`, '是否綁定': 'N', '行動電話': '0900-333-444' });
-              }
-            }
-            resolve({ success: true, data });
-          } else if (action === 'getActivities') {
-            resolve({ success: true, data: [{ '序號': '1', '活動序號': 'ACT001', '活動名稱': '數位轉型趨勢論壇', '日期': '2024-06-15', '地點': '台北國際中心', '人數': '120', '狀態': '報名中' }] });
-          } else if (action === 'updateData') resolve({ success: true });
-        }, 300);
-      });
+      if (action === 'getDashboard') return { success: true, counts: { association: 120, vendor: 45, general: 980, activities: 12 } };
+      if (action === 'getMembers') {
+        let cols = type === 'vendor' ? ['序號', '會員編號', '廠商會員公司名稱', '公司統編', '公司負責人姓名', '聯絡窗口姓名', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
+                   type === 'association' ? ['序號', '會員編號', '身分', '姓名', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'] :
+                   ['序號', '姓名', 'MAIL', '性別', '會員資格(Y/N)', '活動報名次數', '講座報名次數', '教學報名次數', '聯誼報名次數', '會議報名次數', '備註', 'userid', '是否綁定', '行動電話'];
+        let data = [];
+        for (let i = 1; i <= 10; i++) {
+          let obj = {};
+          cols.forEach(c => obj[c] = c === 'MAIL' ? `user${i}@example.com` : (c.includes('次數') ? '0' : `範例-${c}-${i}`));
+          obj['序號'] = i;
+          data.push(obj);
+        }
+        return { success: true, data };
+      }
+      return { success: true, data: [] };
     };
 
     const App = () => {
       const [activeTab, setActiveTab] = useState('dashboard');
       const [isSidebarOpen, setSidebarOpen] = useState(true);
       const [loading, setLoading] = useState(false);
-      const [dashboardStats, setDashboardStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
-      const [currentData, setCurrentData] = useState([]);
+      const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
+      const [data, setData] = useState([]);
       const [memberType, setMemberType] = useState('general');
       const [editingItem, setEditingItem] = useState(null);
-      const [isUpdating, setIsUpdating] = useState(false);
 
       useEffect(() => {
-        if (activeTab === 'dashboard') handleFetchDashboard();
+        if (activeTab === 'dashboard') loadStats();
       }, [activeTab]);
 
-      const handleFetchDashboard = async () => {
+      const loadStats = async () => {
         setLoading(true);
-        try {
-          const res = await callApi('getDashboard');
-          if (res.success) setDashboardStats(res.counts);
-        } finally {
-          setLoading(false);
-        }
+        const res = await callApi('getDashboard');
+        if (res.success) setStats(res.counts);
+        setLoading(false);
       };
 
-      const loadMembers = async (type) => {
+      const loadList = async (type) => {
         setLoading(true);
+        setEditingItem(null); 
         setActiveTab(`members-${type}`);
         setMemberType(type);
-        try {
-          const res = await callApi('getMembers', { type });
-          if (res.success) setCurrentData(res.data);
-        } finally {
-          setLoading(false);
-        }
+        const res = await callApi('getMembers', { type });
+        if (res.success) setData(res.data);
+        setLoading(false);
       };
 
-      const loadActivities = async () => {
+      const saveItem = async () => {
         setLoading(true);
-        setActiveTab('activities');
-        try {
-          const res = await callApi('getActivities');
-          if (res.success) setCurrentData(res.data);
-        } finally {
-          setLoading(false);
+        const res = await callApi('updateData', { type: memberType, data: JSON.stringify(editingItem) });
+        if (res.success) {
+          setData(prev => prev.map(item => item.序號 === editingItem.序號 ? editingItem : item));
+          setEditingItem(null);
         }
-      };
-
-      const handleUpdateField = (key, value) => setEditingItem(prev => ({ ...prev, [key]: value }));
-
-      const saveChanges = async () => {
-        setIsUpdating(true);
-        try {
-          const res = await callApi('updateData', { data: JSON.stringify(editingItem) });
-          if (res.success) {
-            setCurrentData(prev => prev.map(item => (item.序號 === editingItem.序號) ? editingItem : item));
-            setEditingItem(null);
-          }
-        } finally {
-          setIsUpdating(false);
-        }
+        setLoading(false);
       };
 
       return (
-        <div className="flex h-screen overflow-hidden bg-white">
-          {/* Sidebar - Dark Professional (規格鎖定) */}
-          <aside className={`${isSidebarOpen ? 'w-52' : 'w-0'} sidebar-bg transition-all duration-200 flex flex-col shrink-0 z-20 overflow-hidden`}>
-            <div className="h-12 flex items-center px-4 border-b border-white/10 shrink-0 min-w-[208px]">
-              <span className="text-white font-bold text-sm tracking-widest uppercase">CRM Enterprise</span>
+        <div className="flex h-screen overflow-hidden bg-white text-sm">
+          {/* Sidebar */}
+          <aside className={`${isSidebarOpen ? 'w-52' : 'w-0'} sidebar-bg transition-all duration-200 flex flex-col shrink-0 z-20`}>
+            <div className="h-12 flex items-center px-4 border-b border-white/10 shrink-0">
+              <span className="text-white font-bold text-xs tracking-widest uppercase">CRM Admin</span>
             </div>
-            <nav className="flex-1 mt-2 overflow-y-auto min-w-[208px]">
-              <SidebarItem label="儀表板" icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-              <SidebarItem label="活動管理" icon="calendar" active={activeTab === 'activities'} onClick={loadActivities} />
-              <div className="px-4 py-2 text-[10px] text-gray-500 font-bold uppercase tracking-tighter">會員資料庫</div>
-              <SidebarItem label="協會會員清冊" icon="building" active={activeTab === 'members-association'} onClick={() => loadMembers('association')} />
-              <SidebarItem label="廠商會員清冊" icon="users" active={activeTab === 'members-vendor'} onClick={() => loadMembers('vendor')} />
-              <SidebarItem label="一般會員清冊" icon="userCircle" active={activeTab === 'members-general'} onClick={() => loadMembers('general')} />
+            <nav className="flex-1 mt-2 overflow-y-auto">
+              <SidebarLink label="儀表板" icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+              <SidebarLink label="協會會員清冊" icon="building" active={activeTab === 'members-association'} onClick={() => loadList('association')} />
+              <SidebarLink label="廠商會員清冊" icon="users" active={activeTab === 'members-vendor'} onClick={() => loadList('vendor')} />
+              <SidebarLink label="一般會員清冊" icon="userCircle" active={activeTab === 'members-general'} onClick={() => loadList('general')} />
             </nav>
-            <div className="p-4 border-t border-white/10 min-w-[208px]">
-              <button className="flex items-center space-x-2 text-gray-400 hover:text-white text-xs font-medium">
-                <Icon name="logout" size={14} />
-                <span>登出管理員</span>
-              </button>
+            <div className="p-4 border-t border-white/10 text-[10px] text-gray-500">
+              System v{CONFIG.VERSION}
             </div>
           </aside>
 
-          {/* Main Content - Full Screen Expand */}
+          {/* Main Content Area */}
           <main className="flex-1 flex flex-col overflow-hidden relative">
             <header className="h-12 bg-white border-b flex items-center justify-between px-4 shrink-0 z-10">
               <div className="flex items-center space-x-4">
-                <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-gray-100 border transition-colors">
+                <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-gray-100 border">
                   <Icon name="menu" size={16} />
                 </button>
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  System <span className="mx-1 text-gray-300">/</span> {activeTab.replace('members-', '')}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="relative border bg-gray-50">
-                  <Icon name="search" size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="快速搜尋..." className="pl-8 pr-2 py-1 text-[11px] focus:outline-none w-40 bg-transparent" />
+                  {editingItem ? 'Detailed Editor' : activeTab.toUpperCase()}
                 </div>
               </div>
             </header>
 
-            <div className="flex-1 overflow-auto bg-white">
+            <div className="flex-1 overflow-auto">
               {loading ? (
-                <div className="flex items-center justify-center h-full text-xs font-bold text-gray-400 tracking-widest animate-pulse">
-                  SYNCING DATA...
+                <div className="flex items-center justify-center h-full text-xs font-bold text-gray-300 tracking-widest animate-pulse">SYNCHRONIZING...</div>
+              ) : editingItem ? (
+                /* --- Ragic 式詳情展開頁面 --- */
+                <div className="h-full flex flex-col bg-[#f1f3f5]">
+                  <div className="p-4 bg-white border-b flex justify-between items-center sticky top-0 z-20 shadow-sm">
+                    <div className="flex items-center space-x-4">
+                      <button onClick={() => setEditingItem(null)} className="p-1.5 border border-gray-300 bg-white hover:bg-gray-50 flex items-center space-x-2 transition-colors">
+                        <Icon name="chevronLeft" size={14} />
+                        <span className="text-xs font-bold">返回清單</span>
+                      </button>
+                      <h3 className="font-bold text-sm text-gray-700">詳細資料卡: <span className="text-blue-600">#{editingItem.序號}</span></h3>
+                    </div>
+                    <button onClick={saveItem} className="line-green text-white px-10 py-2 text-xs font-bold flex items-center space-x-2 active:scale-95 transition-all">
+                      <Icon name="save" size={14} />
+                      <span>儲存變更</span>
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1 p-8 overflow-auto">
+                    <div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm">
+                      <div className="bg-[#f8f9fa] border-b border-gray-300 p-4">
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Database Record Detail View</span>
+                      </div>
+                      <div className="detail-grid">
+                        {Object.keys(editingItem).map(key => (
+                          <div key={key} className="detail-cell">
+                            <div className="detail-label">{key}</div>
+                            <div className="detail-value">
+                              <input 
+                                className="detail-input"
+                                value={editingItem[key] || ''}
+                                onChange={e => setEditingItem({...editingItem, [key]: e.target.value})}
+                                /* 規格鎖定：唯讀保護 */
+                                disabled={key === '序號' || key === '會員編號' || key === 'userid'}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="max-w-6xl mx-auto mt-4 text-[10px] text-gray-400 italic px-2">
+                      * 灰色背景欄位受系統保護，無法直接修改。所有變更將直接同步至 Google Sheets。
+                    </p>
+                  </div>
+                </div>
+              ) : activeTab === 'dashboard' ? (
+                /* --- 儀表板 --- */
+                <div className="grid grid-cols-1 md:grid-cols-4 border-b">
+                  <DashBox title="協會會員" count={stats.association} color="border-blue-500" />
+                  <DashBox title="廠商會員" count={stats.vendor} color="border-orange-500" />
+                  <DashBox title="一般會員" count={stats.general} color="border-green-500" />
+                  <DashBox title="活動總數" count={stats.activities} color="border-purple-500" />
                 </div>
               ) : (
-                <div className="p-0 h-full">
-                  {activeTab === 'dashboard' ? (
-                    <div className="h-full">
-                      {/* 儀表板響應式 Grid 修正 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-b">
-                        <DashBox title="協會會員" count={dashboardStats.association} color="border-blue-500" />
-                        <DashBox title="廠商會員" count={dashboardStats.vendor} color="border-orange-500" />
-                        <DashBox title="一般會員" count={dashboardStats.general} color="border-green-500" />
-                        <DashBox title="活動總計" count={dashboardStats.activities} color="border-purple-500" />
-                      </div>
-                      <div className="p-8 text-center text-gray-300 text-xs font-bold mt-20">
-                        歡迎進入 CRM 企業管理系統
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex flex-col">
-                      <div className="bg-gray-50 border-b p-2 flex justify-between items-center shrink-0">
-                        <span className="text-[11px] font-bold text-gray-500 px-2 tracking-tight">
-                          目前檢視: {activeTab.toUpperCase()} | 資料筆數: {currentData.length}
-                        </span>
-                        <button className="line-green text-white px-4 py-1.5 text-xs font-bold hover:opacity-90 flex items-center space-x-2 transition-transform active:scale-95 shadow-sm">
-                          <Icon name="plus" size={14} />
-                          <span>新增紀錄</span>
-                        </button>
-                      </div>
-                      <div className="flex-1 overflow-auto">
-                        <table className="crm-table">
-                          <thead>
-                            <tr>
-                              {currentData.length > 0 && Object.keys(currentData[0]).map(k => <th key={k}>{k}</th>)}
-                              <th className="text-center sticky right-0 bg-gray-50 border-l shadow-[-4px_0_8px_rgba(0,0,0,0.02)]">操作項目</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {currentData.map((row, idx) => (
-                              <tr key={idx}>
-                                {Object.values(row).map((v, i) => <td key={i}>{String(v)}</td>)}
-                                <td className="text-center sticky right-0 bg-white border-l shadow-[-4px_0_8px_rgba(0,0,0,0.02)]">
-                                  <button onClick={() => setEditingItem(row)} className="text-blue-600 hover:text-blue-800 text-[11px] font-bold px-3 py-1 border border-transparent hover:border-blue-200 transition-all">編輯</button>
-                                  <button className="text-red-500 hover:text-red-700 text-[11px] font-bold px-3 py-1 ml-1 transition-all">刪除</button>
-                                </td>
-                              </tr>
-                            ))}
-                            {currentData.length === 0 && (
-                              <tr>
-                                <td colSpan="100%" className="text-center py-20 text-gray-400 font-bold text-xs uppercase tracking-widest">No Data Found</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                /* --- 資料表格清單 (已隱藏 MAIL 呈現) --- */
+                <div className="h-full flex flex-col">
+                  <div className="bg-gray-50 border-b p-2 flex justify-between items-center shrink-0">
+                    <span className="text-[10px] font-bold text-gray-400 px-2 tracking-widest">RECORD COUNT: {data.length}</span>
+                    <button className="line-green text-white px-4 py-1.5 text-xs font-bold flex items-center space-x-2 transition-transform active:scale-95">
+                      <Icon name="plus" size={14} />
+                      <span>新增一筆資料</span>
+                    </button>
+                  </div>
+                  <div className="overflow-auto flex-1">
+                    <table className="crm-table">
+                      <thead className="sticky top-0 z-10">
+                        <tr>
+                          {data.length > 0 && Object.keys(data[0])
+                            .filter(k => k !== 'MAIL') // 規格：前台清單不呈現 MAIL
+                            .slice(0, 10)
+                            .map(k => <th key={k}>{k}</th>)
+                          }
+                          <th className="text-center sticky right-0 bg-[#f1f3f5] border-l">管理選項</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.map((row, idx) => (
+                          <tr key={idx}>
+                            {Object.keys(row)
+                              .filter(k => k !== 'MAIL') // 規格：前台清單不呈現 MAIL
+                              .slice(0, 10)
+                              .map((key, i) => <td key={i}>{String(row[key])}</td>)
+                            }
+                            <td className="text-center sticky right-0 bg-white border-l shadow-[-4px_0_8px_rgba(0,0,0,0.02)]">
+                              <button 
+                                onClick={() => setEditingItem(row)} 
+                                className="text-blue-600 font-bold hover:underline px-3 py-1 text-xs"
+                              >
+                                編輯詳細
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Editing Modal (規格鎖定：專業兩欄佈局) */}
-            {editingItem && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <div className="modal-overlay absolute inset-0" onClick={() => setEditingItem(null)}></div>
-                <div className="bg-white border w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl z-10 flex flex-col animate-in slide-in-from-bottom-4 duration-200">
-                  <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-1.5 line-green text-white">
-                        <Icon name="info" size={16} />
-                      </div>
-                      <span className="font-bold text-sm tracking-tight text-gray-700">
-                        編輯詳細資料 <span className="mx-1 text-gray-300">|</span> <span className="text-gray-400 font-medium">#{editingItem.序號}</span>
-                      </span>
-                    </div>
-                    <button onClick={() => setEditingItem(null)} className="hover:bg-gray-200 p-2 transition-colors">
-                      <Icon name="x" size={20} className="text-gray-400" />
-                    </button>
-                  </div>
-
-                  <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 bg-white">
-                    {Object.keys(editingItem).map((key) => (
-                      <div key={key} className="flex flex-col border-b border-gray-100 pb-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{key}</label>
-                        <input 
-                          type="text" 
-                          value={editingItem[key] || ''} 
-                          onChange={(e) => handleUpdateField(key, e.target.value)}
-                          disabled={key.includes('序號') || key.includes('編號')}
-                          className={`px-2 py-2 text-sm focus:bg-yellow-50 focus:border-green-500 border-b-2 border-transparent transition-all focus:outline-none ${ (key.includes('序號') || key.includes('編號')) ? 'bg-gray-50 text-gray-400 cursor-not-allowed italic' : 'bg-white font-medium text-gray-700'}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-4 border-t flex justify-end space-x-3 bg-gray-50 shrink-0">
-                    <button onClick={() => setEditingItem(null)} className="px-6 py-2 border border-gray-300 bg-white text-xs font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-                      取消變更
-                    </button>
-                    <button 
-                      onClick={saveChanges}
-                      disabled={isUpdating}
-                      className="line-green text-white px-10 py-2 text-xs font-bold flex items-center space-x-2 transition-all active:scale-95 shadow-lg shadow-green-100 disabled:opacity-50"
-                    >
-                      {isUpdating ? (
-                        <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
-                      ) : (
-                        <Icon name="save" size={14} />
-                      )}
-                      <span>{isUpdating ? '儲存中' : '儲存更新'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </main>
         </div>
       );
     };
 
-    const SidebarItem = ({ label, icon, active, onClick }) => (
-      <button onClick={onClick} className={`w-full flex items-center space-x-4 px-5 py-3.5 sidebar-item transition-all border-l-4 ${active ? 'sidebar-active border-white/20' : 'text-gray-400 border-transparent'}`}>
+    const SidebarLink = ({ label, icon, active, onClick }) => (
+      <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-4 transition-all border-l-4 ${active ? 'sidebar-active border-white/20' : 'text-gray-500 hover:bg-[#2a2a2a] border-transparent'}`}>
         <Icon name={icon} size={16} />
-        <span className="text-[11px] font-bold tracking-tight">{label}</span>
+        <span className="text-xs font-bold tracking-tight">{label}</span>
       </button>
     );
 
     const DashBox = ({ title, count, color }) => (
-      <div className={`p-6 border-r last:border-r-0 ${color} border-b-4 hover:bg-gray-50 transition-colors cursor-default`}>
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div>
+      <div className={`p-10 border-r last:border-r-0 border-b-8 ${color} hover:bg-gray-50 transition-colors cursor-default`}>
+        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div>
         <div className="text-4xl font-black text-gray-800 tracking-tighter">{count.toLocaleString()}</div>
       </div>
     );
