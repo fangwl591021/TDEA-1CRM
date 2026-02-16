@@ -1,223 +1,176 @@
-import React, { useState, useEffect } from 'react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TDEA CRM - Stable Version</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; background-color: #F4F5F7; color: #333; margin: 0; }
+    * { border-radius: 0 !important; }
+    .line-green-bg { background-color: #06C755; }
+    .line-green-text { color: #06C755; }
+    .sidebar-light { background-color: #F8F9FA; border-right: 1px solid #E5E7EB; }
+    .sidebar-active { background-color: #FFFFFF; color: #06C755 !important; border-left: 4px solid #06C755; font-weight: 700; }
+    .crm-table { width: 100%; border-collapse: collapse; background: white; }
+    .crm-table th { background-color: #F9FAFB; border-bottom: 2px solid #E5E7EB; padding: 12px 15px; font-size: 13px; color: #6B7280; text-align: left; position: sticky; top: 0; }
+    .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
+    .detail-label { width: 150px; background-color: #F9FAFB; border-right: 1px solid #E5E7EB; padding: 12px; font-size: 12px; font-weight: 700; color: #4B5563; }
+    .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
+    .detail-input:focus { background-color: #F0FDF4; }
+    .collapsible-stats { transition: max-height 0.3s ease-in-out, opacity 0.2s; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #D1D5DB; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
 
-/**
- * 核心：整合收合側邊欄、收合儀表板、Ragic 詳情與連線診斷
- */
+    const Icon = ({ name, size = 18, className = "" }) => {
+      const paths = {
+        home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
+        users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+        chevronLeft: "M15 19l-7-7 7-7",
+        chevronRight: "M9 5l7 7-7 7",
+        chevronUp: "M18 15l-6-6-6 6",
+        chevronDown: "M6 9l6 6 6-6",
+        save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z",
+        search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      };
+      return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={paths[name] || ""} /></svg>;
+    };
 
-export default function App() {
-  const [isAuthed, setIsAuthed] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isStatsExpanded, setStatsExpanded] = useState(true);
-  const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+      const [isStatsExpanded, setStatsExpanded] = useState(true);
+      const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
+      const [data, setData] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [editingItem, setEditingItem] = useState(null);
 
-  const CONFIG = window.CRM_CONFIG || {};
+      const callApi = async (action, params = {}) => {
+        if (!CONFIG.GAS_URL) {
+          // 模擬資料供預覽
+          return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 }, data: [] };
+        }
+        try {
+          const query = new URLSearchParams({ action, ...params }).toString();
+          const res = await fetch(`${CONFIG.GAS_URL}?${query}`);
+          return await res.json();
+        } catch (e) { return { success: false }; }
+      };
 
-  useEffect(() => {
-    checkSession();
-  }, []);
+      useEffect(() => {
+        if (activeTab === 'dashboard') callApi('getDashboard').then(r => r.success && setStats(r.counts));
+      }, [activeTab]);
 
-  const checkSession = async () => {
-    // 預覽模式自動通過
-    if (!CONFIG.GAS_URL) {
-      setIsAuthed(true);
-      return;
-    }
+      const loadList = async (type) => {
+        setLoading(true); setEditingItem(null); setActiveTab(type);
+        const r = await callApi('getMembers', { type });
+        if (r.success) setData(r.data);
+        setLoading(false);
+      };
 
-    try {
-      await liff.init({ liffId: "2005868456-Rt5YK7qL" });
-      if (!liff.isLoggedIn()) { window.location.href = "/login.html"; return; }
-      const p = await liff.getProfile();
-      const res = await callApi('check', { userId: p.userId }, 'POST');
-      if (res.status === 'member') {
-        setIsAuthed(true);
-        fetchDashboard();
-      } else {
-        window.location.href = "/login.html";
-      }
-    } catch (e) { window.location.href = "/login.html"; }
-  };
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-60'}`}>
+            <div className="h-16 flex items-center px-4 border-b border-gray-200">
+              <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">CRM</span></div>
+              {!isSidebarCollapsed && <span className="ml-3 font-bold text-gray-700">管理中心</span>}
+            </div>
+            <nav className="flex-1 py-4 overflow-y-auto">
+              <SidebarLink icon="home" label="主頁概覽" active={activeTab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => setActiveTab('dashboard')} />
+              {!isSidebarCollapsed && <div className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">資料模組</div>}
+              <SidebarLink icon="users" label="本業會員" active={activeTab === 'association'} collapsed={isSidebarCollapsed} onClick={() => loadList('association')} />
+              <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={isSidebarCollapsed} onClick={() => loadList('vendor')} />
+              <SidebarLink icon="users" label="一般註冊" active={activeTab === 'general'} collapsed={isSidebarCollapsed} onClick={() => loadList('general')} />
+            </nav>
+            <button onClick={() => setSidebarCollapsed(!isSidebarCollapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:line-green-text">
+               <Icon name={isSidebarCollapsed ? "chevronRight" : "chevronLeft"} size={16} />
+            </button>
+          </aside>
 
-  const callApi = async (action, params = {}, method = 'GET') => {
-    if (!CONFIG.GAS_URL) return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 }, data: [] };
-    
-    try {
-      let res;
-      if (method === 'GET') {
-        const query = new URLSearchParams({ action, ...params }).toString();
-        res = await fetch(`${CONFIG.GAS_URL}?${query}`);
-      } else {
-        res = await fetch(CONFIG.GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action, ...params })
-        });
-      }
-      return await res.json();
-    } catch (err) {
-      console.error("API Error", err);
-      return { success: false };
-    }
-  };
+          <main className="flex-1 flex flex-col overflow-hidden">
+            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
+              <div className="h-full border-b-2 border-[#06C755] flex items-center px-2">
+                <span className="text-sm font-bold line-green-text uppercase tracking-wide">{activeTab}</span>
+              </div>
+              <div className={`px-3 py-1 text-[10px] font-bold border ${CONFIG.GAS_URL ? 'line-green-text border-[#06C755]' : 'text-gray-300 border-gray-200'}`}>
+                 {CONFIG.GAS_URL ? "DATABASE CONNECTED" : "TEST MODE"}
+              </div>
+            </header>
 
-  const fetchDashboard = async () => {
-    const r = await callApi('getDashboard');
-    if (r.success) setStats(r.counts);
-  };
-
-  const loadList = async (type) => {
-    setLoading(true); setEditingItem(null); setActiveTab(type);
-    const r = await callApi('getMembers', { type });
-    if (r.success) setData(r.data);
-    setLoading(false);
-  };
-
-  if (!isAuthed) return <div className="h-screen flex items-center justify-center bg-[#F4F5F7] text-gray-400 font-bold uppercase tracking-widest text-xs animate-pulse">Session Validating...</div>;
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-[#F4F5F7] select-none text-sm">
-      {/* 側邊欄：左右收合 */}
-      <aside className={`bg-[#F8F9FA] border-r border-gray-200 flex flex-col shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-60'}`}>
-        <div className="h-16 flex items-center px-4 border-b border-gray-100">
-          <div className="w-8 h-8 bg-[#06C755] flex items-center justify-center shrink-0">
-             <span className="text-white font-black text-[10px]">OA</span>
-          </div>
-          {!isSidebarCollapsed && <span className="ml-3 font-bold text-gray-700 tracking-tighter">TDEA 管理中心</span>}
-        </div>
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <SidebarLink icon="home" label="主頁概覽" active={activeTab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => setActiveTab('dashboard')} />
-          <SidebarLink icon="users" label="本業會員" active={activeTab === 'association'} collapsed={isSidebarCollapsed} onClick={() => loadList('association')} />
-          <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={isSidebarCollapsed} onClick={() => loadList('vendor')} />
-          <SidebarLink icon="users" label="一般註冊" active={activeTab === 'general'} collapsed={isSidebarCollapsed} onClick={() => loadList('general')} />
-        </nav>
-        <button onClick={() => setSidebarCollapsed(!isSidebarCollapsed)} className="h-12 border-t border-gray-100 flex items-center px-6 text-gray-400 hover:text-[#06C755]">
-           <Icon name={isSidebarCollapsed ? "chevronRight" : "chevronLeft"} size={16} />
-        </button>
-      </aside>
-
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
-          <div className="h-full border-b-2 border-[#06C755] flex items-center px-2">
-            <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
-          </div>
-          <div className={`px-3 py-1 text-[10px] font-bold border ${CONFIG.GAS_URL ? 'text-[#06C755] border-[#06C755]' : 'text-gray-300 border-gray-200'}`}>
-             {CONFIG.GAS_URL ? "ONLINE" : "OFFLINE"}
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-auto p-8">
-          {loading ? (
-             <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest text-xs">Syncing Cloud Database...</div>
-          ) : editingItem ? (
-            /* --- RAGIC 詳細編輯頁面 --- */
-            <div className="h-full flex flex-col animate-in fade-in duration-200">
-               <div className="mb-6 flex justify-between items-center">
-                  <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold flex items-center hover:bg-gray-50">
-                    <Icon name="chevronLeft" size={14} className="mr-2" />返回名冊
-                  </button>
-                  <button className="bg-[#06C755] text-white px-8 py-2 text-xs font-bold shadow-sm">儲存變更</button>
-               </div>
-               <div className="bg-white border border-gray-200 shadow-sm">
-                  <div className="bg-gray-50 border-b border-gray-200 p-4 font-bold text-[10px] text-gray-400 uppercase tracking-widest">Detail Specification</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2">
-                    {Object.keys(editingItem).map(k => (
-                      <div key={k} className="flex border-b border-gray-200">
-                        <div className="w-40 bg-[#F9FAFB] border-r border-gray-200 p-3 font-bold text-gray-500 text-xs flex items-center">{k}</div>
-                        <div className="flex-1 p-2">
-                           <input 
-                             className="w-full p-1.5 focus:bg-[#F0FDF4] outline-none" 
-                             value={editingItem[k]||''} 
-                             onChange={e => setEditingItem({...editingItem, [k]: e.target.value})}
-                             disabled={k.includes('序號') || k.includes('編號') || k === 'userid'}
-                           />
-                        </div>
-                      </div>
-                    ))}
+            <div className="flex-1 overflow-auto p-8">
+              {loading ? <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse">Syncing...</div> : 
+               editingItem ? (
+                <div className="animate-in fade-in flex flex-col h-full">
+                  <div className="mb-6 flex justify-between items-center">
+                    <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回</button>
+                    <button className="line-green-bg text-white px-10 py-2 text-xs font-bold shadow-sm">儲存變更</button>
                   </div>
-               </div>
+                  <div className="bg-white border border-gray-200"><div className="detail-grid">{Object.keys(editingItem).map(k => (
+                    <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="flex-1"><input className="detail-input" value={editingItem[k]||''} onChange={e=>setEditingItem({...editingItem,[k]:e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
+                  ))}</div></div>
+                </div>
+               ) : activeTab === 'dashboard' ? (
+                <div className="flex flex-col space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據中心</h2>
+                    <button onClick={() => setStatsExpanded(!isStatsExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text">
+                      {isStatsExpanded ? "收合數據" : "展開數據"}<Icon name={isStatsExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" />
+                    </button>
+                  </div>
+                  <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${isStatsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <StatCard title="本業會員" value={stats.association} label="Active" />
+                    <StatCard title="廠商會員" value={stats.vendor} label="Partners" />
+                    <StatCard title="一般註冊" value={stats.general} label="Followers" />
+                    <StatCard title="活動總計" value={stats.activities} label="Events" />
+                  </div>
+                  <div className="bg-white border border-gray-200 border-dashed p-20 flex flex-col items-center justify-center text-gray-100 opacity-50">
+                    <Icon name="home" size={80} /><p className="mt-4 font-bold tracking-[0.5em] uppercase">Welcome Back</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
+                  <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/30">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">資料清單 (共 {data.length} 筆)</span>
+                    <button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold">+ 新增</button>
+                  </div>
+                  <div className="overflow-auto flex-1"><table className="crm-table"><thead><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">操作</th></tr></thead><tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditingItem(r)} className="line-green-text font-bold text-xs hover:underline px-4 py-2">編輯詳細</button></td></tr>))}</tbody></table></div>
+                </div>
+              )}
             </div>
-          ) : activeTab === 'dashboard' ? (
-            /* --- Dashboard：上下收合 --- */
-            <div className="flex flex-col space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據分析中心</h2>
-                <button onClick={() => setStatsExpanded(!isStatsExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:text-[#06C755]">
-                  {isStatsExpanded ? "收合數據" : "展開數據"}<Icon name={isStatsExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" />
-                </button>
-              </div>
-              <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 transition-all duration-300 overflow-hidden ${isStatsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <StatCard title="本業會員" value={stats.association} />
-                <StatCard title="廠商會員" value={stats.vendor} />
-                <StatCard title="一般註冊" value={stats.general} />
-                <StatCard title="活動總計" value={stats.activities} />
-              </div>
-              <div className="bg-white border border-gray-200 border-dashed p-20 flex flex-col items-center justify-center text-gray-100 opacity-50">
-                <Icon name="home" size={80} /><p className="mt-4 font-bold tracking-[0.5em] uppercase">Welcome Back</p>
-              </div>
-            </div>
-          ) : (
-            /* --- 表格清單：隱藏 MAIL --- */
-            <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
-               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/30">
-                  <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">資料清單 (共 {data.length} 筆)</span>
-                  <button className="bg-[#06C755] text-white px-5 py-1.5 text-xs font-bold">+ 新增紀錄</button>
-               </div>
-               <div className="overflow-auto flex-1">
-                  <table className="w-full border-collapse">
-                    <thead>
-                       <tr>
-                         {data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => (
-                           <th key={k} className="bg-[#F9FAFB] border-b-2 border-gray-200 p-3 text-left text-xs text-gray-500 font-bold uppercase">{k}</th>
-                         ))}
-                         <th className="bg-[#F9FAFB] border-b-2 border-gray-200 p-3 text-center text-xs text-gray-500 font-bold sticky right-0 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">操作</th>
-                       </tr>
-                    </thead>
-                    <tbody>
-                      {data.map((r, i) => (
-                        <tr key={i} className="hover:bg-[#F9FAFB] border-b border-gray-100">
-                          {Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => (
-                            <td key={j} className="p-3 text-xs text-gray-700">{String(r[k])}</td>
-                          ))}
-                          <td className="p-3 text-center sticky right-0 bg-white shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
-                             <button onClick={() => setEditingItem(r)} className="text-[#06C755] font-bold text-xs hover:underline">編輯詳細</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-               </div>
-            </div>
-          )}
+          </main>
         </div>
-      </main>
-    </div>
-  );
-}
+      );
+    };
 
-const SidebarLink = ({ icon, label, active, collapsed, onClick }) => (
-  <button onClick={onClick} className={`w-full flex items-center py-4 transition-all ${active ? 'bg-white border-l-4 border-[#06C755] text-[#06C755] font-bold shadow-sm' : 'text-gray-500 hover:bg-[#EDF2F7]'} ${collapsed ? 'justify-center' : 'px-6'}`}>
-    <Icon name={icon} size={20} className={collapsed ? '' : 'mr-3'} />
-    {!collapsed && <span className="text-sm tracking-tight">{label}</span>}
-  </button>
-);
+    const SidebarLink = ({ icon, label, active, collapsed, onClick }) => (
+      <button onClick={onClick} className={`w-full flex items-center py-4 transition-all ${active ? 'bg-white border-l-4 border-[#06C755] line-green-text font-bold shadow-sm' : 'text-gray-500 hover:bg-[#EDF2F7]'} ${collapsed ? 'justify-center' : 'px-6'}`}>
+        <Icon name={icon} size={20} className={collapsed ? '' : 'mr-3'} />{!collapsed && <span className="text-sm tracking-tight">{label}</span>}
+      </button>
+    );
 
-const StatCard = ({ title, value }) => (
-  <div className="bg-white border border-gray-200 p-6 border-l-4 border-l-[#06C755] shadow-sm">
-    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</div>
-    <div className="text-3xl font-black text-gray-800">{value.toLocaleString()}</div>
-  </div>
-);
+    const StatCard = ({ title, value, label }) => (
+      <div className="bg-white border border-gray-200 p-6 border-l-4 border-l-[#06C755] shadow-sm">
+        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</div>
+        <div className="text-3xl font-black text-gray-800">{value.toLocaleString()}</div>
+        <div className="text-[9px] text-gray-400 font-bold uppercase">{label}</div>
+      </div>
+    );
 
-const Icon = ({ name, size = 18, className = "" }) => {
-  const paths = {
-    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
-    users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
-    chevronLeft: "M15 19l-7-7 7-7",
-    chevronRight: "M9 5l7 7-7 7",
-    chevronUp: "M18 15l-6-6-6 6",
-    chevronDown: "M6 9l6 6 6-6"
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={paths[name] || ""} /></svg>;
-};
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
