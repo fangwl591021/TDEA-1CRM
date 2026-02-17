@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - 驗證登入</title>
+  <title>TDEA CRM - Login</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -15,68 +15,30 @@
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-  <div id="loader" class="text-center space-y-4">
-    <div class="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
-    <p class="text-gray-400 font-bold text-xs tracking-widest uppercase">Initializing Auth...</p>
-  </div>
-
-  <div id="mainForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden">
+  <div id="loader" class="text-center"><div class="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto mb-4"></div><p class="text-gray-400 font-bold text-xs uppercase tracking-widest">LINE Auth...</p></div>
+  <div id="mainForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
     <div class="p-8 border-b border-gray-100 text-center">
-      <div class="w-14 h-14 line-green-bg flex items-center justify-center mx-auto mb-4 text-white">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-      </div>
-      <h1 class="text-lg font-bold text-gray-800">身分綁定與驗證</h1>
-      <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Identity Bridge</p>
+      <img id="avatar" class="w-20 h-20 border border-gray-200 p-1 mx-auto mb-4 bg-white" src="" />
+      <h1 class="text-lg font-bold text-gray-800"><span id="name">用戶</span>，歡迎</h1>
+      <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Member Identity Bridge</p>
     </div>
-
     <div class="p-8 space-y-6">
-      <div class="flex items-center space-x-3 bg-[#F8F9FA] p-3 border border-gray-100">
-        <img id="avatar" class="w-10 h-10 border border-gray-200" src="" />
-        <p id="lineName" class="font-bold text-gray-700 text-sm">-</p>
-      </div>
-
       <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200">
-        <button onclick="setType('association')" id="btn-association" class="py-3 text-xs font-bold bg-white text-gray-400">本業</button>
+        <button onclick="setType('association')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400">本業</button>
         <button onclick="setType('vendor')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400">廠商</button>
-        <button onclick="setType('general')" id="btn-general" class="py-3 text-xs font-bold bg-white text-gray-400">一般</button>
+        <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400">一般</button>
       </div>
-
       <div class="space-y-4">
-        <div id="memberIdGroup">
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號 (Member ID)</label>
-          <input id="memberId" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="例如: Z1090001" />
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼 (Mobile Phone)</label>
-          <input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" />
-        </div>
+        <div id="idArea"><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號</label><input id="mid" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="如: Z1090001" /></div>
+        <div><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼</label><input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" /></div>
       </div>
-
-      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90">確認綁定並登入系統</button>
+      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90 transition-all">確認綁定並登入</button>
     </div>
   </div>
-
   <script>
     const LIFF_ID = "2005868456-Rt5YK7qL";
     const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
     let curType = "association", uid = "";
-
-    const callApi = async (action, data) => {
-      // 防止空網址導致空轉
-      if (!CONFIG.GAS_URL || CONFIG.GAS_URL === "") {
-        console.error("Missing GAS_URL Configuration");
-        return { success: false, message: "系統配置錯誤，請檢查 Cloudflare 變數" };
-      }
-      try {
-        const res = await fetch(CONFIG.GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action, ...data })
-        });
-        return await res.json();
-      } catch (err) {
-        return { success: false, message: err.message };
-      }
-    };
 
     window.onload = async () => {
       try {
@@ -85,52 +47,31 @@
         const p = await liff.getProfile();
         uid = p.userId;
         document.getElementById('avatar').src = p.pictureUrl;
-        document.getElementById('lineName').textContent = p.displayName;
-
-        // 如果沒有 GAS_URL，直接在模擬模式顯示表單，不嘗試呼叫 API
-        if (!CONFIG.GAS_URL) {
-          document.getElementById('loader').classList.add('hidden');
-          document.getElementById('mainForm').classList.remove('hidden');
-          setType('association');
-          return;
-        }
-
-        const check = await callApi('check', { userId: uid });
-        if (check.status === 'member' || check.status === 'admin') {
-          window.location.href = "/index.html";
-        } else {
-          document.getElementById('loader').classList.add('hidden');
-          document.getElementById('mainForm').classList.remove('hidden');
-          setType('association');
-        }
-      } catch (e) { alert("連線錯誤：" + e.message); }
+        document.getElementById('name').textContent = p.displayName;
+        if (!CONFIG.GAS_URL) { document.getElementById('loader').classList.add('hidden'); document.getElementById('mainForm').classList.remove('hidden'); setType('association'); return; }
+        const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${uid}`).then(r => r.json());
+        if (res.status === 'admin') window.location.href = "index.html";
+        else if (res.status === 'member') window.location.href = "activity.html";
+        else { document.getElementById('loader').classList.add('hidden'); document.getElementById('mainForm').classList.remove('hidden'); setType('association'); }
+      } catch (e) { alert(e.message); }
     };
 
     function setType(t) {
       curType = t;
-      ['btn-association', 'btn-vendor', 'btn-general'].forEach(id => {
-        document.getElementById(id).className = "py-3 text-xs font-bold bg-white text-gray-400";
-      });
-      document.getElementById('btn-' + t).className = "py-3 text-xs font-black line-green-bg text-white";
-      document.getElementById('memberIdGroup').style.display = (t === 'general') ? 'none' : 'block';
+      ['assoc', 'vendor', 'guest'].forEach(id => document.getElementById('btn-' + id).className = "py-3 text-xs font-bold bg-white text-gray-400");
+      document.getElementById('btn-' + (t === 'association' ? 'assoc' : t === 'vendor' ? 'vendor' : 'guest')).className = "py-3 text-xs font-black line-green-bg text-white";
+      document.getElementById('idArea').style.display = t === 'general' ? 'none' : 'block';
     }
 
     async function submitBind() {
-      const mid = document.getElementById('memberId').value.trim();
       const tel = document.getElementById('phone').value.trim();
-      if (!tel) return alert("請輸入手機號碼");
+      if (!tel) return alert("請輸入手機");
       const btn = document.getElementById('submitBtn');
       btn.disabled = true; btn.textContent = "連線中...";
-
       try {
-        const res = await callApi('bindMember', { userId: uid, type: curType, memberId: mid, phone: tel });
-        if (res.success) { 
-          alert("綁定成功！"); 
-          window.location.href = "/index.html"; 
-        } else { 
-          alert("綁定失敗：" + res.message); 
-          btn.disabled = false; btn.textContent = "確認綁定並登入系統"; 
-        }
+        const res = await fetch(CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindMember', userId: uid, type: curType, memberId: document.getElementById('mid').value.trim(), phone: tel }) }).then(r => r.json());
+        if (res.success) { alert("綁定成功！"); window.location.href = "activity.html"; }
+        else { alert(res.message); btn.disabled = false; btn.textContent = "確認綁定並登入"; }
       } catch (e) { btn.disabled = false; }
     }
   </script>
