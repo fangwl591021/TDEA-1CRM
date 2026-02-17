@@ -36,8 +36,7 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
-    const CONFIG = window.CRM_CONFIG || { GAS_URL: "" };
-
+    
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
         home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
@@ -56,6 +55,7 @@
     };
 
     const App = () => {
+      // 嘗試讀取 Cloudflare 注入的變數，若無則讀取 LocalStorage (方便預覽與除錯)
       const [gasUrl, setGasUrl] = useState(() => {
         if (window.CRM_CONFIG && window.CRM_CONFIG.GAS_URL) return window.CRM_CONFIG.GAS_URL;
         return localStorage.getItem('TDEA_GAS_URL') || "";
@@ -71,7 +71,7 @@
       const [loading, setLoading] = useState(false);
       
       const [editingItem, setEditingItem] = useState(null);
-      const [isNewItem, setIsNewItem] = useState(false); // 標記是否為新增
+      const [isNewItem, setIsNewItem] = useState(false);
       const [isSaving, setIsSaving] = useState(false);
 
       const [status, setStatus] = useState("Checking...");
@@ -85,19 +85,20 @@
         window.location.reload();
       };
 
-      // 統一 API 呼叫 (支援 GET 與 POST)
+      // --- 核心：API 代理切換邏輯 ---
       const callApi = async (action, params = {}, method = 'GET') => {
         if (!gasUrl) {
-          setStatus("MISSING CONFIG");
+          setStatus("MISSING URL");
           return null;
         }
 
         try {
-          // 如果是 Worker 代理環境，統一用 /api
-          // 如果是本地測試且有 GAS_URL，直接連
-          const isProxy = window.CRM_CONFIG && window.CRM_CONFIG.GAS_URL;
-          const baseUrl = isProxy ? "/api" : gasUrl;
-
+          // 判斷是否為 Worker 環境 (有無 PROXY_READY 標記)
+          const isProxyEnv = window.CRM_CONFIG && window.CRM_CONFIG.PROXY_READY;
+          
+          // 如果是 Worker 環境，用相對路徑 /api；如果是本地預覽，用絕對路徑 gasUrl
+          const baseUrl = isProxyEnv ? "/api" : gasUrl;
+          
           let res;
           if (method === 'GET') {
             const query = new URLSearchParams({ action, ...params }).toString();
@@ -148,11 +149,9 @@
       // --- 新增資料 ---
       const handleAdd = () => {
         if (data.length === 0) {
-            // 如果清單是空的，無法複製欄位結構，需手動定義或提示
-            alert("請先確保目前分頁有標題列，否則無法新增");
+            alert("目前清單為空，無法複製欄位結構，請先確認 Google 試算表有標題列。");
             return;
         }
-        // 複製第一筆資料的結構，將值清空
         const template = { ...data[0] };
         Object.keys(template).forEach(k => template[k] = "");
         template['序號'] = "(系統自動產生)";
@@ -161,7 +160,7 @@
         setIsNewItem(true);
       };
 
-      // --- 儲存資料 (編輯或新增) ---
+      // --- 儲存資料 ---
       const handleSave = async () => {
         setIsSaving(true);
         const action = isNewItem ? 'addData' : 'updateData';
@@ -174,7 +173,7 @@
         if (res && res.success) {
           alert(isNewItem ? "新增成功！" : "更新成功！");
           setEditingItem(null);
-          loadList(activeTab); // 重新載入列表
+          loadList(activeTab); 
         } else {
           alert("儲存失敗：" + (res?.error || "未知錯誤"));
         }
@@ -183,6 +182,7 @@
 
       return (
         <div className="flex h-screen overflow-hidden">
+          {/* Config Modal */}
           {showConfig && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
               <div className="bg-white p-8 w-96 shadow-2xl">
@@ -228,7 +228,7 @@
                 editingItem ? (
                   <div className="flex flex-col h-full animate-in fade-in duration-300">
                     <div className="mb-6 flex justify-between items-center">
-                      <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回</button>
+                      <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回名冊</button>
                       <div className="flex items-center space-x-2">
                         <span className="text-xs font-bold text-gray-400 mr-2">{isNewItem ? "建立新資料" : "編輯資料"}</span>
                         <button onClick={handleSave} disabled={isSaving} className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center disabled:opacity-50">
