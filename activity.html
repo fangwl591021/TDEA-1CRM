@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA - 會員活動專區</title>
+  <title>TDEA - Member Activities</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -17,26 +17,27 @@
 <body class="bg-[#F4F5F7]">
   <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
     <div class="flex items-center space-x-3">
-      <div class="w-8 h-8 line-green-bg flex items-center justify-center"><span class="text-white text-xs font-black">TDEA</span></div>
+      <div class="w-8 h-8 line-green-bg flex items-center justify-center shrink-0">
+        <span class="text-white text-xs font-black">TDEA</span>
+      </div>
       <span class="font-bold text-gray-800">會員專區</span>
     </div>
-    <div class="flex items-center space-x-2">
-      <span id="userName" class="text-xs font-bold text-gray-500">-</span>
-      <img id="userAvatar" class="w-8 h-8 bg-gray-100" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
+    <div class="flex items-center space-x-3">
+      <div class="text-right">
+        <div id="user" class="text-xs font-black text-gray-700 leading-none">-</div>
+        <div class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Member</div>
+      </div>
+      <img id="avatar" class="w-8 h-8 border border-gray-100 bg-gray-50" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
     </div>
   </nav>
 
   <div class="p-6 space-y-6">
-    <div class="bg-white border border-gray-200 p-8 text-center space-y-2 shadow-sm">
+    <div class="bg-white border border-gray-200 p-8 text-center shadow-sm">
       <h2 class="text-xl font-bold text-gray-800">最新活動列表</h2>
-      <p class="text-xs text-gray-400 uppercase tracking-widest">Ongoing Events</p>
+      <p class="text-xs text-gray-400 uppercase tracking-widest">Recent Events</p>
     </div>
-
-    <div id="activityContainer" class="grid grid-cols-1 gap-4">
-      <!-- 動態載入活動 -->
-      <div class="bg-white border border-gray-200 p-12 text-center text-gray-300 font-bold animate-pulse uppercase tracking-[0.3em]">
-        Loading Activities...
-      </div>
+    <div id="activities" class="grid grid-cols-1 gap-4">
+      <div class="text-center p-10 text-gray-300 font-bold animate-pulse">FETCHING ACTIVITIES...</div>
     </div>
   </div>
 
@@ -44,59 +45,49 @@
     const LIFF_ID = "2005868456-Rt5YK7qL";
     const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
 
+    // 安全的重導向函數，防止空網址錯誤
+    function safeRedirect(target) {
+      if (target && target.trim() !== "") {
+        window.location.href = target;
+      } else {
+        console.error("Redirect failed: Target URL is empty");
+      }
+    }
+
     window.onload = async () => {
-      // 🌟 修正：如果沒有 GAS_URL，代表在開發/預覽環境，跳過 LINE 驗證以防止重定向錯誤
-      if (!CONFIG.GAS_URL || CONFIG.GAS_URL.trim() === "" || CONFIG.GAS_URL.includes("您的ID")) {
-        console.warn("預覽模式：跳過身分驗證檢查");
-        document.getElementById('userName').textContent = "預覽用戶";
-        loadActivities();
+      // 預覽模式判斷
+      if (!CONFIG.GAS_URL || CONFIG.GAS_URL === "") {
+        console.warn("PREVIEW MODE: Skipping LIFF Auth");
+        document.getElementById('user').textContent = "預覽用戶";
+        loadMock();
         return;
       }
 
       try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { 
-          // 確保重定向路徑正確
-          window.location.href = "login.html"; 
+          safeRedirect("login.html"); 
           return; 
         }
+        
         const p = await liff.getProfile();
-        document.getElementById('userAvatar').src = p.pictureUrl;
-        document.getElementById('userName').textContent = p.displayName;
+        document.getElementById('avatar').src = p.pictureUrl;
+        document.getElementById('user').textContent = p.displayName;
 
         loadActivities();
       } catch (e) { 
-        console.error("LIFF 載入失敗:", e);
-        // 如果在正式環境中失敗，且有設定 URL，才嘗試回登入頁
-        if (CONFIG.GAS_URL) {
-          window.location.href = "login.html";
-        }
+        console.error("LIFF Initialization failed:", e);
+        safeRedirect("login.html"); 
       }
     };
 
     async function loadActivities() {
-      // 如果沒有實體後端，顯示模擬資料
-      if (!CONFIG.GAS_URL || CONFIG.GAS_URL.trim() === "") {
-        const container = document.getElementById('activityContainer');
-        container.innerHTML = `
-          <div class="bg-white border border-gray-200 p-6 flex justify-between items-center opacity-60">
-            <div>
-              <div class="text-[10px] font-bold text-gray-400 uppercase mb-1">範例活動</div>
-              <div class="text-lg font-bold text-gray-800">TDEA 年度大會 (預覽)</div>
-              <div class="text-xs text-gray-500 mt-1">2024-12-31 14:00</div>
-            </div>
-            <button class="bg-gray-200 text-gray-400 px-6 py-2 text-xs font-bold" disabled>查看詳情</button>
-          </div>
-          <div class="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
-            — 目前為預覽模式，資料庫未連線 —
-          </div>
-        `;
-        return;
-      }
-
       try {
-        const res = await fetch(`${CONFIG.GAS_URL}?action=getActivities`).then(r => r.json());
-        const container = document.getElementById('activityContainer');
+        const response = await fetch(`${CONFIG.GAS_URL}?action=getActivities`);
+        if (!response.ok) throw new Error("Network response was not ok");
+        
+        const res = await response.json();
+        const container = document.getElementById('activities');
         container.innerHTML = "";
         
         if (res.success && res.data && res.data.length > 0) {
@@ -105,21 +96,25 @@
             card.className = "bg-white border border-gray-200 p-6 flex justify-between items-center hover:border-[#06C755] transition-all cursor-pointer group";
             card.innerHTML = `
               <div>
-                <div class="text-[10px] font-bold text-gray-400 uppercase mb-1">${act['活動性質'] || '一般活動'}</div>
-                <div class="text-lg font-bold text-gray-800 group-hover:line-green-text transition-colors">${act['活動名稱'] || '未命名活動'}</div>
+                <div class="text-[10px] font-bold text-gray-400 mb-1">${act['活動性質'] || '一般'}</div>
+                <div class="text-lg font-bold text-gray-800 group-hover:line-green-text transition-colors">${act['活動名稱'] || '未命名'}</div>
                 <div class="text-xs text-gray-500 mt-1">${act['活動時間'] || ''}</div>
               </div>
-              <button class="line-green-bg text-white px-6 py-2 text-xs font-bold shadow-sm active:scale-95 transition-all">查看詳情</button>
+              <button class="line-green-bg text-white px-6 py-2 text-xs font-bold shadow-sm active:scale-95 transition-all">立即參加</button>
             `;
             container.appendChild(card);
           });
-        } else {
-          container.innerHTML = `<div class="bg-white border border-gray-200 p-10 text-center text-gray-400 font-bold uppercase tracking-widest">No Events Found</div>`;
+        } else { 
+          container.innerHTML = `<div class="p-10 text-center text-gray-400 font-bold uppercase text-xs">No active events at the moment</div>`; 
         }
       } catch (err) {
-        console.error("資料載入失敗:", err);
-        document.getElementById('activityContainer').innerHTML = `<div class="bg-white border border-gray-200 p-10 text-center text-red-400 font-bold">連線資料庫失敗</div>`;
+        console.error("Failed to load activities:", err);
+        document.getElementById('activities').innerHTML = `<div class="p-10 text-center text-red-400 font-bold">連線失敗，請稍後再試</div>`;
       }
+    }
+
+    function loadMock() { 
+      document.getElementById('activities').innerHTML = `<div class="bg-white border border-gray-200 p-10 text-center text-gray-400 font-bold">— PREVIEW MODE —</div>`; 
     }
   </script>
 </body>
