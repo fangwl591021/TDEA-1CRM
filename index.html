@@ -48,8 +48,13 @@
     };
 
     const App = () => {
-      const [authState, setAuthState] = useState({ isAuthed: false, user: null, loading: true });
-      const [activeTab, setActiveTab] = useState('dashboard');
+      const [appState, setAppState] = useState({ 
+        loading: true, 
+        isAuthed: false, 
+        user: null,
+        activeTab: 'dashboard'
+      });
+      
       const [collapsed, setCollapsed] = useState(false);
       const [dashExpanded, setDashExpanded] = useState(true);
       const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
@@ -57,49 +62,97 @@
       const [listLoading, setListLoading] = useState(false);
       const [editing, setEditing] = useState(null);
 
-      const fetchDashboard = useCallback(async () => {
-        if (!CONFIG.GAS_URL) return;
-        const res = await fetch(`${CONFIG.GAS_URL}?action=getDashboard`).then(r => r.json());
+      // 安全的重定向函數
+      const safeRedirect = (target) => {
+        if (target && typeof target === 'string' && target.trim() !== "") {
+          window.location.href = target;
+        } else {
+          console.error("Critical Error: Redirect target is empty or invalid.");
+          // 預設退回路徑
+          window.location.href = "login.html";
+        }
+      };
+
+      const callApi = useCallback(async (action, params = {}) => {
+        if (!CONFIG.GAS_URL || !appState.user?.userId) return { success: false };
+        const query = new URLSearchParams({ 
+          action, 
+          userId: appState.user.userId,
+          ...params 
+        }).toString();
+        try {
+          const res = await fetch(`${CONFIG.GAS_URL}?${query}`).then(r => r.json());
+          return res;
+        } catch (e) {
+          console.error("API Error:", e);
+          return { success: false };
+        }
+      }, [appState.user]);
+
+      const loadDashboard = useCallback(async () => {
+        const res = await callApi('getDashboard');
         if (res.success) setStats(res.counts);
+      }, [callApi]);
+
+      useEffect(() => {
+        const initialize = async () => {
+          try {
+            // 預覽模式守衛
+            if (!CONFIG.GAS_URL || CONFIG.GAS_URL.includes("您的ID")) {
+              setAppState(prev => ({ 
+                ...prev, 
+                isAuthed: true, 
+                user: { displayName: "Preview Admin", pictureUrl: "", userId: "MOCK_UID" }, 
+                loading: false 
+              }));
+              return;
+            }
+
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { 
+              safeRedirect("login.html"); 
+              return; 
+            }
+            
+            const profile = await liff.getProfile();
+            
+            const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${profile.userId}`).then(r => r.json());
+            
+            if (res.status === 'admin') {
+              setAppState(prev => ({ ...prev, isAuthed: true, user: profile, loading: false }));
+            } else {
+              const target = res.status === 'member' ? "activity.html" : "login.html";
+              safeRedirect(target);
+            }
+          } catch (e) {
+            console.error("Initialization Error", e);
+            // 發生錯誤時，若在正式環境，嘗試回到登入頁
+            if (CONFIG.GAS_URL && !CONFIG.GAS_URL.includes("您的ID")) {
+              safeRedirect("login.html");
+            }
+          }
+        };
+        initialize();
       }, []);
 
       useEffect(() => {
-        const init = async () => {
-          if (!CONFIG.GAS_URL) {
-            setAuthState({ isAuthed: true, user: { displayName: "預覽管理員", pictureUrl: "" }, loading: false });
-            return;
-          }
-          try {
-            await liff.init({ liffId: LIFF_ID });
-            if (!liff.isLoggedIn()) { window.location.href = "login.html"; return; }
-            const p = await liff.getProfile();
-            const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${p.userId}`).then(r => r.json());
-            
-            if (res.status === 'admin') {
-              setAuthState({ isAuthed: true, user: p, loading: false });
-              fetchDashboard();
-            } else {
-              window.location.href = res.status === 'member' ? "activity.html" : "login.html";
-            }
-          } catch (e) {
-            console.error("Auth Fail", e);
-            window.location.href = "login.html";
-          }
-        };
-        init();
-      }, [fetchDashboard]);
+        if (appState.isAuthed && appState.activeTab === 'dashboard') {
+          loadDashboard();
+        }
+      }, [appState.isAuthed, appState.activeTab, loadDashboard]);
 
       const loadList = async (type) => {
-        setListLoading(true); setEditing(null); setActiveTab(type);
-        const res = await fetch(`${CONFIG.GAS_URL}?action=getMembers&type=${type}`).then(r => r.json());
+        setListLoading(true); setEditing(null);
+        setAppState(prev => ({ ...prev, activeTab: type }));
+        const res = await callApi('getMembers', { type });
         if (res.success) setData(res.data);
         setListLoading(false);
       };
 
-      if (authState.loading) return (
+      if (appState.loading) return (
         <div className="h-screen flex flex-col items-center justify-center bg-[#F4F5F7] space-y-4">
           <div className="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin"></div>
-          <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em]">Authenticating Administrator...</p>
+          <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em]">Authenticating Session...</p>
         </div>
       );
 
@@ -107,44 +160,48 @@
         <div className="flex h-screen overflow-hidden">
           <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
             <div className="h-16 flex items-center px-4 border-b border-gray-200 shrink-0">
-              <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">CRM</span></div>
+              <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0">
+                <span className="text-white font-black text-[10px]">CRM</span>
+              </div>
               {!collapsed && <span className="ml-3 font-bold text-gray-700">TDEA 管理中心</span>}
             </div>
             <nav className="flex-1 py-4 overflow-y-auto">
-              <SidebarLink icon="home" label="主頁概覽" active={activeTab === 'dashboard'} collapsed={collapsed} onClick={() => { setActiveTab('dashboard'); fetchDashboard(); }} />
-              <div className={`px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest ${collapsed ? 'hidden' : ''}`}>會員管理</div>
-              <SidebarLink icon="users" label="本業會員" active={activeTab === 'association'} collapsed={collapsed} onClick={() => loadList('association')} />
-              <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={collapsed} onClick={() => loadList('vendor')} />
-              <SidebarLink icon="users" label="一般註冊" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
+              <SidebarLink icon="home" label="主頁概覽" active={appState.activeTab === 'dashboard'} collapsed={collapsed} onClick={() => setAppState(prev=>({...prev, activeTab: 'dashboard'}))} />
+              {!collapsed && <div className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Database</div>}
+              <SidebarLink icon="users" label="本業會員" active={appState.activeTab === 'association'} collapsed={collapsed} onClick={() => loadList('association')} />
+              <SidebarLink icon="users" label="廠商會員" active={appState.activeTab === 'vendor'} collapsed={collapsed} onClick={() => loadList('vendor')} />
+              <SidebarLink icon="users" label="一般註冊" active={appState.activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
             </nav>
             <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500 transition-colors">
                <Icon name={collapsed ? "chevronRight" : "chevronLeft"} />
-               {!collapsed && <span className="ml-3 text-[10px] font-bold">收合選單</span>}
+               {!collapsed && <span className="ml-3 text-[10px] font-bold uppercase tracking-tight">Collapse Menu</span>}
             </button>
           </aside>
 
           <main className="flex-1 flex flex-col overflow-hidden">
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
-              <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
+              <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{appState.activeTab}</span>
               <div className="flex items-center space-x-3">
-                 <img src={authState.user?.pictureUrl} className="w-9 h-9 border border-gray-100 bg-gray-50" onError={(e)=>e.target.style.display='none'} />
+                 {appState.user?.pictureUrl && (
+                   <img src={appState.user.pictureUrl} className="w-9 h-9 border border-gray-100 bg-gray-50 shadow-sm" onError={(e)=>e.target.style.display='none'} />
+                 )}
                  <div className="text-right">
-                   <div className="text-[11px] font-black text-gray-800 leading-none mb-1">{authState.user?.displayName}</div>
-                   <div className="text-[9px] text-[#06C755] font-bold uppercase tracking-tighter">Authorized Admin</div>
+                   <div className="text-[11px] font-black text-gray-800 leading-none mb-1">{appState.user?.displayName || "Admin User"}</div>
+                   <div className="text-[9px] text-[#06C755] font-bold uppercase tracking-tighter">System Administrator</div>
                  </div>
               </div>
             </header>
             
             <div className="flex-1 overflow-auto p-8">
-               {listLoading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse italic">Loading Database...</div> :
+               {listLoading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse italic">Synchronizing...</div> :
                 editing ? (
                   <div className="flex flex-col h-full animate-in fade-in">
-                    <button onClick={() => setEditing(null)} className="mb-6 w-24 px-4 py-2 bg-white border border-gray-300 text-xs font-bold flex items-center hover:bg-gray-50"><Icon name="chevronLeft" size={14} className="mr-2" />返回清單</button>
+                    <button onClick={() => setEditing(null)} className="mb-6 w-24 px-4 py-2 bg-white border border-gray-300 text-xs font-bold flex items-center hover:bg-gray-50"><Icon name="chevronLeft" size={14} className="mr-2" />返回列表</button>
                     <div className="bg-white border border-gray-200 shadow-sm"><div className="detail-grid">{Object.keys(editing).map(k => (
                       <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="flex-1"><input className="detail-input" value={editing[k]||''} onChange={e=>setEditing({...editing,[k]:e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
                     ))}</div></div>
                   </div>
-                ) : activeTab === 'dashboard' ? (
+                ) : appState.activeTab === 'dashboard' ? (
                   <div className="flex flex-col space-y-8 h-full">
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據概覽</h2>
@@ -155,12 +212,12 @@
                     </div>
                     <div className="flex-1 flex flex-col items-center justify-center opacity-[0.03] select-none">
                        <Icon name="home" size={200} />
-                       <p className="mt-4 text-4xl font-black tracking-[1em]">SYSTEM</p>
+                       <p className="mt-4 text-4xl font-black tracking-[1em]">MANAGEMENT</p>
                     </div>
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total: {data.length} Records Found</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增資料</button></div>
+                    <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total {data.length} records</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增</button></div>
                     <div className="overflow-auto flex-1">
                       <table className="crm-table">
                         <thead>
