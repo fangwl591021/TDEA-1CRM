@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - Stable Console</title>
+  <title>TDEA CRM - Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,24 +11,17 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
     body { font-family: 'Noto Sans TC', sans-serif; background-color: #F4F5F7; margin: 0; color: #333; }
-    
-    /* 核心規格：無圓角 (Ragic Style) */
     * { border-radius: 0 !important; }
-
     .line-green { color: #06C755; }
     .line-green-bg { background-color: #06C755; }
     .sidebar-light { background-color: #F8F9FA; border-right: 1px solid #E5E7EB; }
     .sidebar-active { background-color: #FFFFFF; color: #06C755 !important; border-left: 4px solid #06C755; font-weight: 700; }
-    
     .crm-table { width: 100%; border-collapse: collapse; background: white; }
     .crm-table th { background-color: #F9FAFB; border-bottom: 2px solid #E5E7EB; padding: 12px 15px; font-size: 13px; color: #6B7280; text-align: left; position: sticky; top: 0; z-index: 10; }
     .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; white-space: nowrap; }
-    
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
     .detail-label { width: 150px; background-color: #F9FAFB; border-right: 1px solid #E5E7EB; padding: 12px; font-size: 12px; font-weight: 700; color: #4B5563; }
     .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
-    .detail-input:focus { background-color: #F0FDF4; }
-
     .collapsible-stats { transition: max-height 0.3s ease-in-out, opacity 0.2s; overflow: hidden; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #D1D5DB; }
@@ -38,8 +31,8 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
-    // 讀取 Cloudflare 注入的變數
-    const CONFIG = window.CRM_CONFIG || { GAS_URL: "" };
+    // 讀取 Worker 注入的設定
+    const CONFIG = window.CRM_CONFIG || {};
 
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
@@ -64,47 +57,41 @@
       const [data, setData] = useState([]);
       const [loading, setLoading] = useState(false);
       const [editingItem, setEditingItem] = useState(null);
-      const [status, setStatus] = useState("Checking...");
+      const [status, setStatus] = useState("Connecting...");
 
-      // --- 核心修正：直接呼叫 GAS_URL，移除 /api 代理 ---
+      // --- 核心 API 呼叫 (完全移除 Mock Data) ---
       const callApi = async (action, params = {}) => {
-        // 1. 預覽/無網址模式 -> 使用 Mock Data
-        if (!CONFIG.GAS_URL || CONFIG.GAS_URL.trim() === "") {
-          console.warn("[Preview Mode] No GAS_URL defined.");
-          setStatus("PREVIEW MODE");
-          return getMockData(action, params.type);
+        // 如果沒有配置，直接報錯
+        if (!CONFIG.GAS_URL) {
+          setStatus("CONFIG ERROR");
+          alert("錯誤：未偵測到 GAS_URL，請檢查 Cloudflare 變數設定。");
+          return null;
         }
 
         try {
+          // 使用 /api 代理路徑 (由 Worker 轉發)
           const query = new URLSearchParams({ action, ...params }).toString();
-          // 2. 直接呼叫 GAS
-          const res = await fetch(`${CONFIG.GAS_URL}?${query}`);
-          if (!res.ok) throw new Error("Network Error");
+          const res = await fetch(`/api?${query}`);
+          
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+          
           const json = await res.json();
-          setStatus("ONLINE");
+          setStatus("CONNECTED");
+          
+          if (!json.success) {
+            console.error("GAS Error:", json.error);
+            alert("資料讀取失敗：" + (json.error || "未知錯誤"));
+            return null;
+          }
           return json;
         } catch (e) {
-          console.error("API Fetch Error:", e);
-          setStatus("CONNECTION ERROR");
-          // 連線失敗時顯示模擬資料，避免畫面空白，並提示錯誤
-          return getMockData(action, params.type);
+          console.error("API Error:", e);
+          setStatus("CONNECTION FAILED");
+          return null;
         }
       };
 
-      const getMockData = (action, type) => {
-        if (action === 'getDashboard') return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 } };
-        if (action === 'getMembers') {
-          return { 
-            success: true, 
-            data: Array.from({length: 10}, (_, i) => ({
-              '序號': i + 1, '會員編號': `A${100+i}`, '姓名': `測試會員 ${i+1}`, 'MAIL': `user${i}@test.com`,
-              '行動電話': '0912-345-678', '會員資格(Y/N)': 'Y', 'userid': `UID_${i}`, '活動報名次數': 0
-            })) 
-          };
-        }
-        return { success: true };
-      };
-
+      // 初始化：讀取儀表板
       useEffect(() => {
         if (activeTab === 'dashboard') {
           setLoading(true);
@@ -115,11 +102,12 @@
         }
       }, [activeTab]);
 
+      // 讀取名冊
       const loadList = async (type) => {
         setLoading(true); setEditingItem(null); setActiveTab(type);
         const res = await callApi('getMembers', { type });
         if (res && res.success) setData(res.data);
-        else setData([]);
+        else setData([]); // 失敗則清空，不顯示假資料
         setLoading(false);
       };
 
@@ -129,11 +117,11 @@
           <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
             <div className="h-16 flex items-center px-4 border-b border-gray-200">
               <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">OA</span></div>
-              {!collapsed && <span className="ml-3 font-bold text-gray-700 text-sm">TDEA 管理中心</span>}
+              {!collapsed && <span className="ml-3 font-bold text-gray-700 text-sm">管理中心</span>}
             </div>
             <nav className="flex-1 py-4 overflow-y-auto">
               <SidebarLink icon="home" label="主頁概覽" active={activeTab === 'dashboard'} collapsed={collapsed} onClick={() => setActiveTab('dashboard')} />
-              {!collapsed && <div className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">資料模組</div>}
+              {!collapsed && <div className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">資料庫</div>}
               <SidebarLink icon="users" label="本業會員" active={activeTab === 'association'} collapsed={collapsed} onClick={() => loadList('association')} />
               <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={collapsed} onClick={() => loadList('vendor')} />
               <SidebarLink icon="users" label="一般會員" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
@@ -141,7 +129,6 @@
             </nav>
             <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500">
                <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={16} />
-               {!collapsed && <span className="ml-3 text-[10px] font-bold">收合選單</span>}
             </button>
           </aside>
 
@@ -149,16 +136,14 @@
           <main className="flex-1 flex flex-col overflow-hidden">
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
               <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
-              <div className="flex items-center space-x-2">
-                <div className={`px-2 py-0.5 text-[10px] font-bold border ${status === 'CONNECTED' || status === 'ONLINE' ? 'line-green-bg text-white' : 'text-gray-400 border-gray-300'}`}>
-                  {status}
-                </div>
+              <div className={`px-3 py-1 text-[10px] font-bold border ${status === 'CONNECTED' ? 'line-green-bg text-white' : 'text-red-400 border-red-300'}`}>
+                {status}
               </div>
             </header>
 
             <div className="flex-1 overflow-auto p-8">
               {loading ? (
-                <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest text-xs">Loading Data...</div>
+                <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest text-xs">Loading Real Data...</div>
               ) : editingItem ? (
                 /* Ragic Detail Edit */
                 <div className="flex flex-col h-full animate-in fade-in duration-300">
@@ -203,7 +188,7 @@
                 /* List Table */
                 <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
                   <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/30">
-                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total {data.length} Records</span>
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total: {data.length} Records</span>
                     <button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增</button>
                   </div>
                   <div className="overflow-auto flex-1">
@@ -227,7 +212,7 @@
                     </table>
                     {data.length === 0 && !loading && (
                       <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
-                        {status.includes("ERROR") ? "資料讀取失敗，請檢查 GAS 權限" : "No Data Found"}
+                        No Data Loaded (Check Connection)
                       </div>
                     )}
                   </div>
