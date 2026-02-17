@@ -12,13 +12,10 @@
     * { border-radius: 0 !important; }
     .line-green-bg { background-color: #06C755; }
     .input-focus:focus { border-color: #06C755; outline: none; }
-    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-  
-  <!-- 載入與驗證動畫 -->
+  <!-- 載入中 -->
   <div id="loader" class="text-center space-y-6">
     <div id="profilePreview" class="hidden flex flex-col items-center space-y-3">
       <img id="briefAvatar" class="w-20 h-20 border-4 border-white shadow-md bg-gray-200" src="" />
@@ -28,42 +25,39 @@
     <p class="text-gray-400 font-bold text-[10px] uppercase tracking-[0.25em]">Verifying Identity...</p>
   </div>
 
-  <!-- 綁定表單 (僅在未註冊時顯示) -->
-  <div id="bindForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden fade-in">
+  <!-- 綁定表單 -->
+  <div id="bindForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden">
     <div class="p-8 border-b border-gray-100 text-center bg-[#F8F9FA]">
-      <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 flex items-center justify-center text-gray-300">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-      </div>
-      <h1 class="text-lg font-bold text-gray-800">會員身分綁定</h1>
-      <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Connect Your Account</p>
+      <img id="avatar" class="w-24 h-24 border-4 border-white shadow-sm mx-auto mb-4" src="" />
+      <h1 class="text-xl font-bold text-gray-800"><span id="name">用戶</span>，您好</h1>
+      <p class="text-xs text-gray-400 mt-2 tracking-widest uppercase">請完成身分綁定</p>
     </div>
-
     <div class="p-8 space-y-6">
       <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200">
-        <button onclick="setType('association')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">本業</button>
-        <button onclick="setType('vendor')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">廠商</button>
-        <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400 hover:text-[#06C755]">一般</button>
+        <button onclick="setType('association')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400">本業</button>
+        <button onclick="setType('vendor')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400">廠商</button>
+        <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400">一般</button>
       </div>
-
       <div class="space-y-4">
-        <div id="idGroup">
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">會員編號</label>
-          <input id="mid" type="text" class="w-full border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="例如: Z1090001" />
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">手機號碼</label>
-          <input id="phone" type="tel" class="w-full border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" />
-        </div>
+        <div id="idGroup"><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號</label><input id="mid" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="例如: Z1090001" /></div>
+        <div><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼</label><input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" /></div>
       </div>
-
-      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm hover:opacity-90 active:scale-[0.99] transition-all">確認綁定並登入</button>
+      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90">確認綁定</button>
     </div>
   </div>
 
   <script>
     const LIFF_ID = "2005868456-Rt5YK7qL";
-    const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
     let curType = "association", uid = "";
+
+    // 使用 /api 路徑呼叫 Worker 代理
+    const callApi = async (action, data) => {
+      const res = await fetch(`/api?action=${action}`, {
+        method: 'POST',
+        body: JSON.stringify({ action, ...data })
+      });
+      return await res.json();
+    };
 
     window.onload = async () => {
       try {
@@ -72,31 +66,20 @@
         const p = await liff.getProfile();
         uid = p.userId;
         
-        // 顯示頭貼確認身分
         document.getElementById('briefAvatar').src = p.pictureUrl;
         document.getElementById('briefName').textContent = p.displayName;
         document.getElementById('profilePreview').classList.remove('hidden');
+        document.getElementById('avatar').src = p.pictureUrl;
+        document.getElementById('name').textContent = p.displayName;
 
-        if (!CONFIG.GAS_URL) {
-          // 預覽模式下直接顯示表單
-          showBindingForm(); 
-          return;
-        }
-
-        // 呼叫 GAS 檢查權限 (POST)
-        const res = await fetch(CONFIG.GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'check', userId: uid })
-        }).then(r => r.json());
-
+        // 呼叫後端檢查
+        const res = await callApi('check', { userId: uid });
+        
         if (res.status === 'admin') window.location.href = "index.html";
         else if (res.status === 'member') window.location.href = "activity.html";
-        else showBindingForm(); // 無紀錄，顯示註冊表單
+        else showBindingForm();
 
-      } catch (e) {
-        console.error(e);
-        showBindingForm(); // 錯誤時保守顯示表單
-      }
+      } catch (e) { console.error(e); showBindingForm(); }
     };
 
     function showBindingForm() {
@@ -107,41 +90,22 @@
 
     function setType(t) {
       curType = t;
-      ['assoc', 'vendor', 'guest'].forEach(id => {
-        document.getElementById('btn-' + id).className = "py-3 text-xs font-bold bg-white text-gray-400";
-      });
-      const activeId = t === 'association' ? 'assoc' : (t === 'vendor' ? 'vendor' : 'guest');
-      document.getElementById('btn-' + activeId).className = "py-3 text-xs font-black line-green-bg text-white shadow-inner";
+      ['assoc', 'vendor', 'guest'].forEach(id => document.getElementById('btn-' + id).className = "py-3 text-xs font-bold bg-white text-gray-400");
+      document.getElementById('btn-' + (t==='association'?'assoc':t==='vendor'?'vendor':'guest')).className = "py-3 text-xs font-black line-green-bg text-white shadow-inner";
       document.getElementById('idGroup').style.display = t === 'general' ? 'none' : 'block';
     }
 
     async function submitBind() {
-      const mid = document.getElementById('mid').value.trim();
-      const tel = document.getElementById('phone').value.trim();
-      if (!tel) return alert("請輸入手機號碼");
-      
       const btn = document.getElementById('submitBtn');
       btn.disabled = true; btn.textContent = "連線驗證中...";
-
       try {
-        const res = await fetch(CONFIG.GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({ 
-            action: 'bindMember', 
-            userId: uid, 
-            type: curType, 
-            memberId: mid, 
-            phone: tel 
-          })
-        }).then(r => r.json());
-
-        if (res.success) {
-          alert("綁定成功！");
-          window.location.href = "activity.html";
-        } else {
-          alert("失敗：" + res.message);
-          btn.disabled = false; btn.textContent = "確認綁定並登入";
-        }
+        const res = await callApi('bindMember', { 
+          userId: uid, type: curType, 
+          memberId: document.getElementById('mid').value.trim(), 
+          phone: document.getElementById('phone').value.trim() 
+        });
+        if (res.success) { alert("綁定成功！"); window.location.href = "activity.html"; }
+        else { alert("綁定失敗：" + res.message); btn.disabled = false; btn.textContent = "確認綁定"; }
       } catch (e) { btn.disabled = false; }
     }
   </script>
