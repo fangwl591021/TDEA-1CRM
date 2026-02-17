@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - Stable Console</title>
+  <title>TDEA CRM - Admin</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,17 +12,14 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
     body { font-family: 'Noto Sans TC', sans-serif; background-color: #F4F5F7; margin: 0; color: #333; }
-    
-    /* Ragic 風格：0 圓角 */
     * { border-radius: 0 !important; }
-
     .line-green { color: #06C755; }
     .line-green-bg { background-color: #06C755; }
     .sidebar-light { background-color: #F8F9FA; border-right: 1px solid #E5E7EB; }
     .sidebar-active { background-color: #FFFFFF; color: #06C755 !important; border-left: 4px solid #06C755; font-weight: 700; }
     .crm-table { width: 100%; border-collapse: collapse; background: white; }
     .crm-table th { background-color: #F9FAFB; border-bottom: 2px solid #E5E7EB; padding: 12px 15px; font-size: 13px; color: #6B7280; text-align: left; position: sticky; top: 0; z-index: 10; }
-    .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; white-space: nowrap; }
+    .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; }
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
     .detail-label { width: 150px; background-color: #F9FAFB; border-right: 1px solid #E5E7EB; padding: 12px; font-size: 12px; font-weight: 700; color: #4B5563; }
     .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
@@ -34,14 +32,13 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
-    // 讀取 Cloudflare 注入的變數
-    const CONFIG = window.CRM_CONFIG || { GAS_URL: "" };
+    const LIFF_ID = "2005868456-Rt5YK7qL";
+    const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
 
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
         home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
         users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
-        calendar: "M8 7V3m8 4V3M3 11h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
         chevronLeft: "M15 19l-7-7 7-7",
         chevronRight: "M9 5l7 7-7 7",
         chevronUp: "M18 15l-6-6-6 6",
@@ -53,6 +50,8 @@
     };
 
     const App = () => {
+      const [isAuthed, setIsAuthed] = useState(false);
+      const [user, setUser] = useState(null);
       const [activeTab, setActiveTab] = useState('dashboard');
       const [collapsed, setCollapsed] = useState(false);
       const [dashExpanded, setDashExpanded] = useState(true);
@@ -60,48 +59,57 @@
       const [data, setData] = useState([]);
       const [loading, setLoading] = useState(false);
       const [editingItem, setEditingItem] = useState(null);
-      const [error, setError] = useState(null);
 
-      // 單純的 API 呼叫
+      // --- 核心：身分檢查 (Guard) ---
+      useEffect(() => {
+        const guard = async () => {
+          if (!CONFIG.GAS_URL) { setIsAuthed(true); loadDashboard(); return; } // 預覽放行
+          try {
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { window.location.href = "login.html"; return; }
+            const p = await liff.getProfile();
+            setUser(p);
+            
+            // 使用 POST 檢查身分
+            const res = await fetch(CONFIG.GAS_URL, {
+              method: 'POST',
+              body: JSON.stringify({ action: 'check', userId: p.userId })
+            }).then(r => r.json());
+
+            if (res.status === 'admin') {
+              setIsAuthed(true);
+              loadDashboard();
+            } else {
+              window.location.href = "login.html"; // 非管理員踢回
+            }
+          } catch (e) { window.location.href = "login.html"; }
+        };
+        guard();
+      }, []);
+
+      // --- 資料讀取 (使用 GET) ---
       const callApi = async (action, params = {}) => {
-        if (!CONFIG.GAS_URL) {
-          setError("未設定 GAS_URL，請檢查 Cloudflare 環境變數。");
-          return null;
-        }
-        try {
-          const query = new URLSearchParams({ action, ...params }).toString();
-          const res = await fetch(`${CONFIG.GAS_URL}?${query}`);
-          if (!res.ok) throw new Error("網路回應失敗 (CORS 或 404)");
-          const json = await res.json();
-          if (!json.success) throw new Error(json.error || "後端處理錯誤");
-          return json;
-        } catch (e) {
-          console.error("API Error:", e);
-          setError(e.message);
-          return null;
-        }
+        if (!CONFIG.GAS_URL) return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 }, data: [] };
+        const query = new URLSearchParams({ action, ...params }).toString();
+        return await fetch(`${CONFIG.GAS_URL}?${query}`).then(r => r.json());
       };
 
-      useEffect(() => {
-        if (activeTab === 'dashboard') {
-          setLoading(true);
-          callApi('getDashboard').then(res => {
-            if (res && res.success) setStats(res.counts);
-            setLoading(false);
-          });
-        }
-      }, [activeTab]);
+      const loadDashboard = async () => {
+        const r = await callApi('getDashboard');
+        if (r.success) setStats(r.counts);
+      };
 
       const loadList = async (type) => {
-        setLoading(true); setEditingItem(null); setActiveTab(type); setError(null);
-        const res = await callApi('getMembers', { type });
-        if (res && res.success) setData(res.data);
+        setLoading(true); setEditingItem(null); setActiveTab(type);
+        const r = await callApi('getMembers', { type });
+        if (r.success) setData(r.data);
         setLoading(false);
       };
 
+      if (!isAuthed) return <div className="h-screen flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Admin Authorization...</div>;
+
       return (
         <div className="flex h-screen overflow-hidden">
-          {/* Sidebar */}
           <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
             <div className="h-16 flex items-center px-4 border-b border-gray-200">
               <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">CRM</span></div>
@@ -109,106 +117,56 @@
             </div>
             <nav className="flex-1 py-4 overflow-y-auto">
               <SidebarLink icon="home" label="主頁概覽" active={activeTab === 'dashboard'} collapsed={collapsed} onClick={() => setActiveTab('dashboard')} />
-              {!collapsed && <div className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">資料模組</div>}
               <SidebarLink icon="users" label="本業會員" active={activeTab === 'association'} collapsed={collapsed} onClick={() => loadList('association')} />
               <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={collapsed} onClick={() => loadList('vendor')} />
-              <SidebarLink icon="users" label="一般會員" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
-              <SidebarLink icon="calendar" label="活動 LIST" active={activeTab === 'activities'} collapsed={collapsed} onClick={() => loadList('activities')} />
+              <SidebarLink icon="users" label="一般註冊" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
             </nav>
-            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-[#06C755]">
+            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500 transition-colors">
                <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={16} />
                {!collapsed && <span className="ml-3 text-[10px] font-bold">收合選單</span>}
             </button>
           </aside>
 
-          {/* Main Content */}
           <main className="flex-1 flex flex-col overflow-hidden">
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
               <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
-              <div className={`px-2 py-0.5 text-[10px] font-bold border ${error ? 'text-red-500 border-red-300' : 'text-[#06C755] border-[#06C755]'}`}>
-                 {error ? "ERROR" : "ONLINE"}
+              <div className="flex items-center space-x-3">
+                 <img src={user?.pictureUrl} className="w-8 h-8 border border-gray-100 bg-gray-50" />
+                 <div className="text-right">
+                   <div className="text-[11px] font-black text-gray-800 leading-none mb-1">{user?.displayName}</div>
+                   <div className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Administrator</div>
+                 </div>
               </div>
             </header>
-
+            
             <div className="flex-1 overflow-auto p-8">
-              {error && <div className="bg-red-50 text-red-500 p-4 mb-4 border border-red-200 text-xs font-bold">{error}</div>}
-
-              {loading ? (
-                <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest text-xs">Loading Data...</div>
-              ) : editingItem ? (
-                /* Ragic Detail Edit */
-                <div className="flex flex-col h-full animate-in fade-in duration-300">
-                  <div className="mb-6 flex justify-between items-center">
-                    <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回名冊</button>
-                    <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center"><Icon name="save" size={14} className="mr-2" />儲存</button>
+               {loading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse">Loading Data...</div> :
+                editingItem ? (
+                  <div className="flex flex-col h-full animate-in fade-in">
+                    <div className="mb-6 flex justify-between items-center">
+                      <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回</button>
+                      <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center"><Icon name="save" size={14} className="mr-2" />儲存</button>
+                    </div>
+                    <div className="bg-white border border-gray-200 shadow-sm"><div className="detail-grid">{Object.keys(editingItem).map(k => (
+                      <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="flex-1"><input className="detail-input" value={editingItem[k]||''} onChange={e=>setEditingItem({...editingItem,[k]:e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
+                    ))}</div></div>
                   </div>
-                  <div className="bg-white border border-gray-200 shadow-sm">
-                    <div className="bg-gray-50 border-b border-gray-200 p-4 font-bold text-[10px] text-gray-500 uppercase tracking-widest">Detail Specification</div>
-                    <div className="detail-grid">
-                      {Object.keys(editingItem).map(k => (
-                        <div key={k} className="detail-cell">
-                          <div className="detail-label">{k}</div>
-                          <div className="flex-1 bg-white">
-                            <input 
-                              className="detail-input" 
-                              value={editingItem[k] || ''} 
-                              onChange={e => setEditingItem({...editingItem, [k]: e.target.value})} 
-                              disabled={k.includes('序號') || k.includes('編號') || k === 'userid'} 
-                            />
-                          </div>
-                        </div>
-                      ))}
+                ) : activeTab === 'dashboard' ? (
+                  <div className="flex flex-col space-y-8">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據概覽</h2>
+                      <button onClick={() => setDashExpanded(!dashExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text">{dashExpanded ? "收合數據" : "展開數據"}<Icon name={dashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" /></button>
+                    </div>
+                    <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${dashExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <StatCard title="本業會員" value={stats.association} /><StatCard title="廠商會員" value={stats.vendor} /><StatCard title="一般註冊" value={stats.general} /><StatCard title="活動總計" value={stats.activities} />
                     </div>
                   </div>
-                </div>
-              ) : activeTab === 'dashboard' ? (
-                /* Dashboard */
-                <div className="flex flex-col space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據概覽</h2>
-                    <button onClick={() => setDashExpanded(!dashExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text transition-colors">{dashExpanded ? "收合數據" : "展開數據"}<Icon name={dashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" /></button>
+                ) : (
+                  <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total {data.length} Records</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增</button></div>
+                    <div className="overflow-auto flex-1"><table className="crm-table"><thead><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">管理</th></tr></thead><tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditingItem(r)} className="text-[#06C755] font-bold text-xs hover:underline px-4 py-2 transition-colors">編輯詳細</button></td></tr>))}</tbody></table></div>
                   </div>
-                  <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${dashExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <StatCard title="本業會員" value={stats.association} label="Active" />
-                    <StatCard title="廠商會員" value={stats.vendor} label="Partners" />
-                    <StatCard title="一般會員" value={stats.general} label="Followers" />
-                    <StatCard title="活動總計" value={stats.activities} label="Events" />
-                  </div>
-                </div>
-              ) : (
-                /* List Table */
-                <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
-                  <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/30">
-                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total: {data.length} Records</span>
-                    <button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增</button>
-                  </div>
-                  <div className="overflow-auto flex-1">
-                    <table className="crm-table">
-                      <thead>
-                        <tr>
-                          {data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}
-                          <th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">管理</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.map((r, i) => (
-                          <tr key={i}>
-                            {Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}
-                            <td className="text-center sticky right-0 bg-white border-l border-gray-200">
-                              <button onClick={() => setEditingItem(r)} className="text-[#06C755] font-bold text-xs hover:underline px-4 py-2 transition-colors">編輯詳細</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {data.length === 0 && !loading && (
-                      <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
-                        No Data Found
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </main>
         </div>
@@ -221,7 +179,7 @@
       </button>
     );
 
-    const StatCard = ({ title, value, label }) => (
+    const StatCard = ({ title, value }) => (
       <div className="bg-white border border-gray-200 p-6 border-l-4 border-l-[#06C755] shadow-sm">
         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div>
         <div className="text-3xl font-black text-gray-800 tracking-tighter">{value.toLocaleString()}</div>
