@@ -19,7 +19,7 @@
     .sidebar-active { background-color: #FFFFFF; color: #06C755 !important; border-left: 4px solid #06C755; font-weight: 700; }
     .crm-table { width: 100%; border-collapse: collapse; background: white; }
     .crm-table th { background-color: #F9FAFB; border-bottom: 2px solid #E5E7EB; padding: 12px 15px; font-size: 13px; color: #6B7280; text-align: left; position: sticky; top: 0; z-index: 10; }
-    .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; }
+    .crm-table td { border-bottom: 1px solid #F3F4F6; padding: 10px 15px; font-size: 13px; white-space: nowrap; }
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
     .detail-label { width: 150px; background-color: #F9FAFB; border-right: 1px solid #E5E7EB; padding: 12px; font-size: 12px; font-weight: 700; color: #4B5563; }
     .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
@@ -43,8 +43,7 @@
         chevronRight: "M9 5l7 7-7 7",
         chevronUp: "M18 15l-6-6-6 6",
         chevronDown: "M6 9l6 6 6-6",
-        save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z",
-        search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
       };
       return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={paths[name] || ""} /></svg>;
     };
@@ -58,58 +57,78 @@
       const [stats, setStats] = useState({ association: 0, vendor: 0, general: 0, activities: 0 });
       const [data, setData] = useState([]);
       const [loading, setLoading] = useState(false);
-      const [editingItem, setEditingItem] = useState(null);
+      const [editing, setEditing] = useState(null);
+      const [error, setError] = useState(null);
 
-      // --- 核心：身分檢查 (Guard) ---
+      // --- 驗證流程 (強制管理員) ---
       useEffect(() => {
-        const guard = async () => {
-          if (!CONFIG.GAS_URL) { setIsAuthed(true); loadDashboard(); return; } // 預覽放行
+        const init = async () => {
+          if (!CONFIG.GAS_URL) {
+            // 預覽環境不擋人，但顯示警告
+            setIsAuthed(true); 
+            setError("預覽模式：無連線");
+            return; 
+          }
           try {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { window.location.href = "login.html"; return; }
             const p = await liff.getProfile();
             setUser(p);
-            
-            // 使用 POST 檢查身分
-            const res = await fetch(CONFIG.GAS_URL, {
-              method: 'POST',
-              body: JSON.stringify({ action: 'check', userId: p.userId })
-            }).then(r => r.json());
 
+            // 呼叫後端檢查權限
+            const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${p.userId}`).then(r => r.json());
+            
             if (res.status === 'admin') {
               setIsAuthed(true);
               loadDashboard();
             } else {
-              window.location.href = "login.html"; // 非管理員踢回
+              // 非管理員，踢回登入或活動頁
+              window.location.href = res.status === 'member' ? "activity.html" : "login.html";
             }
-          } catch (e) { window.location.href = "login.html"; }
+          } catch (e) {
+            console.error(e);
+            window.location.href = "login.html";
+          }
         };
-        guard();
+        init();
       }, []);
 
-      // --- 資料讀取 (使用 GET) ---
+      // --- API 呼叫 (完全移除 Mock Data) ---
       const callApi = async (action, params = {}) => {
-        if (!CONFIG.GAS_URL) return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 }, data: [] };
-        const query = new URLSearchParams({ action, ...params }).toString();
-        return await fetch(`${CONFIG.GAS_URL}?${query}`).then(r => r.json());
+        setError(null);
+        if (!CONFIG.GAS_URL) return { success: false, error: "No URL" };
+        try {
+          const query = new URLSearchParams({ action, ...params }).toString();
+          const res = await fetch(`${CONFIG.GAS_URL}?${query}`);
+          if (!res.ok) throw new Error("HTTP Error " + res.status);
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error || "Unknown Error");
+          return json;
+        } catch (e) {
+          console.error(e);
+          setError("資料讀取失敗: " + e.message);
+          return { success: false };
+        }
       };
 
       const loadDashboard = async () => {
-        const r = await callApi('getDashboard');
-        if (r.success) setStats(r.counts);
+        const res = await callApi('getDashboard');
+        if (res.success) setStats(res.counts);
       };
 
       const loadList = async (type) => {
-        setLoading(true); setEditingItem(null); setActiveTab(type);
-        const r = await callApi('getMembers', { type });
-        if (r.success) setData(r.data);
+        setLoading(true); setEditing(null); setActiveTab(type);
+        const res = await callApi('getMembers', { type });
+        if (res.success) setData(res.data);
+        else setData([]); // 失敗就清空，絕不顯示假資料
         setLoading(false);
       };
 
-      if (!isAuthed) return <div className="h-screen flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Admin Authorization...</div>;
+      if (!isAuthed) return <div className="h-screen flex items-center justify-center text-gray-400 font-bold text-xs uppercase tracking-widest">Checking Permissions...</div>;
 
       return (
         <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
           <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
             <div className="h-16 flex items-center px-4 border-b border-gray-200">
               <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">CRM</span></div>
@@ -121,9 +140,8 @@
               <SidebarLink icon="users" label="廠商會員" active={activeTab === 'vendor'} collapsed={collapsed} onClick={() => loadList('vendor')} />
               <SidebarLink icon="users" label="一般註冊" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
             </nav>
-            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500 transition-colors">
+            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500">
                <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={16} />
-               {!collapsed && <span className="ml-3 text-[10px] font-bold">收合選單</span>}
             </button>
           </aside>
 
@@ -131,40 +149,59 @@
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
               <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
               <div className="flex items-center space-x-3">
+                 <div className="text-red-500 text-xs font-bold">{error}</div>
                  <img src={user?.pictureUrl} className="w-8 h-8 border border-gray-100 bg-gray-50" />
                  <div className="text-right">
-                   <div className="text-[11px] font-black text-gray-800 leading-none mb-1">{user?.displayName}</div>
-                   <div className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Administrator</div>
+                   <div className="text-[11px] font-black text-gray-800 leading-none">{user?.displayName}</div>
+                   <div className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Admin</div>
                  </div>
               </div>
             </header>
             
             <div className="flex-1 overflow-auto p-8">
-               {loading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse">Loading Data...</div> :
-                editingItem ? (
+               {loading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse">Syncing Database...</div> :
+                editing ? (
                   <div className="flex flex-col h-full animate-in fade-in">
-                    <div className="mb-6 flex justify-between items-center">
-                      <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回</button>
-                      <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center"><Icon name="save" size={14} className="mr-2" />儲存</button>
-                    </div>
-                    <div className="bg-white border border-gray-200 shadow-sm"><div className="detail-grid">{Object.keys(editingItem).map(k => (
-                      <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="flex-1"><input className="detail-input" value={editingItem[k]||''} onChange={e=>setEditingItem({...editingItem,[k]:e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
+                    <button onClick={() => setEditing(null)} className="mb-6 w-24 px-4 py-2 bg-white border border-gray-300 text-xs font-bold flex items-center hover:bg-gray-50"><Icon name="chevronLeft" size={14} className="mr-2" />返回清單</button>
+                    <div className="bg-white border border-gray-200 shadow-sm"><div className="detail-grid">{Object.keys(editing).map(k => (
+                      <div key={k} className="detail-cell"><div className="detail-label">{k}</div><div className="flex-1"><input className="detail-input" value={editing[k]||''} onChange={e=>setEditing({...editing,[k]:e.target.value})} disabled={k.includes('序號')||k.includes('編號')||k==='userid'} /></div></div>
                     ))}</div></div>
                   </div>
                 ) : activeTab === 'dashboard' ? (
                   <div className="flex flex-col space-y-8">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據概覽</h2>
+                      <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據中心</h2>
                       <button onClick={() => setDashExpanded(!dashExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text">{dashExpanded ? "收合數據" : "展開數據"}<Icon name={dashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" /></button>
                     </div>
                     <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${dashExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <StatCard title="本業會員" value={stats.association} /><StatCard title="廠商會員" value={stats.vendor} /><StatCard title="一般註冊" value={stats.general} /><StatCard title="活動總計" value={stats.activities} />
+                      <StatCard title="本業會員" value={stats.association} label="Active" />
+                      <StatCard title="廠商會員" value={stats.vendor} label="Partners" />
+                      <StatCard title="一般註冊" value={stats.general} label="Followers" />
+                      <StatCard title="活動總計" value={stats.activities} label="Events" />
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden">
+                  <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full">
                     <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Total {data.length} Records</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 shadow-sm">+ 新增</button></div>
-                    <div className="overflow-auto flex-1"><table className="crm-table"><thead><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">管理</th></tr></thead><tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditingItem(r)} className="text-[#06C755] font-bold text-xs hover:underline px-4 py-2 transition-colors">編輯詳細</button></td></tr>))}</tbody></table></div>
+                    <div className="overflow-auto flex-1">
+                      <table className="crm-table">
+                        <thead>
+                          <tr>
+                            {data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}
+                            <th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">管理</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.map((r, i) => (
+                            <tr key={i}>
+                              {Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}
+                              <td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditing(r)} className="text-[#06C755] font-bold text-xs hover:underline px-4 py-2">編輯詳細</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {data.length === 0 && <div className="p-10 text-center text-gray-400 font-bold text-xs">No Data Loaded.</div>}
+                    </div>
                   </div>
                 )}
             </div>
@@ -179,7 +216,7 @@
       </button>
     );
 
-    const StatCard = ({ title, value }) => (
+    const StatCard = ({ title, value, label }) => (
       <div className="bg-white border border-gray-200 p-6 border-l-4 border-l-[#06C755] shadow-sm">
         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</div>
         <div className="text-3xl font-black text-gray-800 tracking-tighter">{value.toLocaleString()}</div>
