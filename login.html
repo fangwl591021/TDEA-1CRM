@@ -3,44 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - Login</title>
+  <title>TDEA CRM - Authentication</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
     body { font-family: 'Noto Sans TC', sans-serif; background-color: #F4F5F7; margin: 0; }
-    /* 規格鎖定：0 圓角 */
     * { border-radius: 0 !important; }
     .line-green-bg { background-color: #06C755; }
     .input-focus:focus { border-color: #06C755; outline: none; }
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 text-sm">
+<body class="min-h-screen flex items-center justify-center p-4">
+  <!-- Initializing Auth State -->
   <div id="loader" class="text-center space-y-6">
-    <div id="profilePreview" class="hidden flex flex-col items-center space-y-3">
-      <img id="loadAvatar" class="w-16 h-16 border-2 border-white shadow-sm" src="" />
-      <p id="loadName" class="text-gray-600 font-bold text-sm tracking-widest"></p>
+    <div id="profileBrief" class="hidden flex flex-col items-center space-y-3">
+      <img id="briefAvatar" class="w-20 h-20 border-4 border-white shadow-md" src="" />
+      <p id="briefName" class="font-bold text-gray-700 text-lg"></p>
     </div>
-    <div class="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
-    <p class="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">Verifying Identity...</p>
+    <div class="w-12 h-12 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
+    <p class="text-gray-400 font-bold text-xs uppercase tracking-widest">Validating Session...</p>
   </div>
 
-  <div id="mainForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
+  <!-- Binding Form (Guest Only) -->
+  <div id="bindForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden">
     <div class="p-8 border-b border-gray-100 text-center bg-[#F8F9FA]">
-      <img id="avatar" class="w-20 h-20 border border-gray-200 p-1 bg-white mx-auto mb-4" src="" />
-      <h1 class="text-lg font-bold text-gray-800"><span id="name">用戶</span>，您好</h1>
-      <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">請完成會員身分綁定</p>
+      <img id="avatar" class="w-24 h-24 border-4 border-white shadow-sm mx-auto mb-4" src="" />
+      <h1 class="text-xl font-bold text-gray-800"><span id="name">用戶</span>，您好</h1>
+      <p class="text-xs text-gray-400 mt-2 tracking-widest uppercase">請完成身分綁定</p>
     </div>
     <div class="p-8 space-y-6">
       <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200">
-        <button onclick="setType('association')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400">本業會員</button>
-        <button onclick="setType('vendor')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400">廠商會員</button>
-        <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400">一般大眾</button>
+        <button onclick="setType('association')" id="btn-assoc" class="py-3 text-xs font-bold bg-white text-gray-400">本業</button>
+        <button onclick="setType('vendor')" id="btn-vendor" class="py-3 text-xs font-bold bg-white text-gray-400">廠商</button>
+        <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400">一般</button>
       </div>
       <div class="space-y-4">
-        <div id="idArea">
+        <div id="idGroup">
           <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號</label>
           <input id="mid" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="如: Z1090001" />
         </div>
@@ -52,6 +51,7 @@
       <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90">確認綁定並登入</button>
     </div>
   </div>
+
   <script>
     const LIFF_ID = "2005868456-Rt5YK7qL";
     const CONFIG = { GAS_URL: window.CRM_CONFIG?.GAS_URL || "" };
@@ -63,33 +63,60 @@
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const p = await liff.getProfile();
         uid = p.userId;
-        document.getElementById('loadAvatar').src = p.pictureUrl;
-        document.getElementById('loadName').textContent = p.displayName;
-        document.getElementById('profilePreview').classList.remove('hidden');
+        
+        // Show immediate feedback with profile
+        document.getElementById('briefAvatar').src = p.pictureUrl;
+        document.getElementById('briefName').textContent = p.displayName;
+        document.getElementById('profileBrief').classList.remove('hidden');
+
         document.getElementById('avatar').src = p.pictureUrl;
         document.getElementById('name').textContent = p.displayName;
-        if (!CONFIG.GAS_URL) { showForm(); return; }
+
+        if (!CONFIG.GAS_URL) {
+          console.warn("No GAS_URL found.");
+          showBindingForm();
+          return;
+        }
+
         const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${uid}`).then(r => r.json());
-        if (res.status === 'admin') window.location.href = "index.html";
-        else if (res.status === 'member') window.location.href = "activity.html";
-        else showForm();
-      } catch (e) { showForm(); }
+        
+        if (res.status === 'admin') {
+          window.location.href = "index.html";
+        } else if (res.status === 'member') {
+          window.location.href = "activity.html";
+        } else {
+          showBindingForm();
+        }
+      } catch (e) {
+        console.error(e);
+        showBindingForm();
+      }
     };
-    function showForm() { document.getElementById('loader').classList.add('hidden'); document.getElementById('mainForm').classList.remove('hidden'); setType('association'); }
+
+    function showBindingForm() {
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('bindForm').classList.remove('hidden');
+      setType('association');
+    }
+
     function setType(t) {
       curType = t;
       ['assoc', 'vendor', 'guest'].forEach(id => document.getElementById('btn-' + id).className = "py-3 text-xs font-bold bg-white text-gray-400");
-      document.getElementById('btn-' + (t==='association'?'assoc':t==='vendor'?'vendor':'guest')).className = "py-3 text-xs font-black line-green-bg text-white";
-      document.getElementById('idArea').style.display = t === 'general' ? 'none' : 'block';
+      document.getElementById('btn-' + (t === 'association' ? 'assoc' : t === 'vendor' ? 'vendor' : 'guest')).className = "py-3 text-xs font-black line-green-bg text-white shadow-inner";
+      document.getElementById('idGroup').style.display = t === 'general' ? 'none' : 'block';
     }
+
     async function submitBind() {
       const tel = document.getElementById('phone').value.trim();
-      if (!tel) return alert("請輸入手機");
+      if (!tel) return alert("請輸入手機號碼");
       const btn = document.getElementById('submitBtn');
-      btn.disabled = true; btn.textContent = "連線中...";
+      btn.disabled = true; btn.textContent = "連線驗證中...";
       try {
-        const res = await fetch(CONFIG.GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'bindMember', userId: uid, type: curType, memberId: document.getElementById('mid').value.trim(), phone: tel }) }).then(r => r.json());
-        if (res.success) { alert("綁定成功！"); window.location.href = "activity.html"; }
+        const res = await fetch(CONFIG.GAS_URL, { 
+          method: 'POST', 
+          body: JSON.stringify({ action: 'bindMember', userId: uid, type: curType, memberId: document.getElementById('mid').value.trim(), phone: tel }) 
+        }).then(r => r.json());
+        if (res.success) { alert("綁定成功！即將進入系統"); window.location.href = "activity.html"; }
         else { alert(res.message); btn.disabled = false; btn.textContent = "確認綁定並登入"; }
       } catch (e) { btn.disabled = false; }
     }
