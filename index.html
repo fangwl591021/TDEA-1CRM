@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - Admin</title>
+  <title>TDEA CRM - Stable Console</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -37,6 +37,14 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
     
+    // 優先讀取 Cloudflare 注入，若無則讀取 LocalStorage
+    const getInitialConfig = () => {
+      if (window.CRM_CONFIG && window.CRM_CONFIG.GAS_URL) {
+        return window.CRM_CONFIG.GAS_URL;
+      }
+      return localStorage.getItem('TDEA_GAS_URL') || "";
+    };
+
     const Icon = ({ name, size = 18, className = "" }) => {
       const paths = {
         home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
@@ -55,12 +63,8 @@
     };
 
     const App = () => {
-      // 嘗試讀取 Cloudflare 注入的變數，若無則讀取 LocalStorage (方便預覽與除錯)
-      const [gasUrl, setGasUrl] = useState(() => {
-        if (window.CRM_CONFIG && window.CRM_CONFIG.GAS_URL) return window.CRM_CONFIG.GAS_URL;
-        return localStorage.getItem('TDEA_GAS_URL') || "";
-      });
-      const [showConfig, setShowConfig] = useState(!gasUrl);
+      const [gasUrl, setGasUrl] = useState(getInitialConfig());
+      const [showConfig, setShowConfig] = useState(!getInitialConfig());
       const [tempUrl, setTempUrl] = useState("");
       
       const [activeTab, setActiveTab] = useState('dashboard');
@@ -85,26 +89,26 @@
         window.location.reload();
       };
 
-      // --- 核心：API 代理切換邏輯 ---
+      // --- 核心修正：穩健的錯誤捕捉 ---
       const callApi = async (action, params = {}, method = 'GET') => {
+        setErrorDetails("");
         if (!gasUrl) {
-          setStatus("MISSING URL");
+          setStatus("MISSING CONFIG");
           return null;
         }
 
         try {
-          // 判斷是否為 Worker 環境 (有無 PROXY_READY 標記)
-          const isProxyEnv = window.CRM_CONFIG && window.CRM_CONFIG.PROXY_READY;
-          
-          // 如果是 Worker 環境，用相對路徑 /api；如果是本地預覽，用絕對路徑 gasUrl
-          const baseUrl = isProxyEnv ? "/api" : gasUrl;
-          
+          // 判斷是否為 Worker 代理環境
+          const config = window.CRM_CONFIG || {};
+          // 如果有 PROXY_READY 標記，代表 Worker 正常運作，使用 /api
+          // 否則使用 gasUrl 直接連線 (本地測試)
+          const baseUrl = config.PROXY_READY ? "/api" : gasUrl;
+
           let res;
           if (method === 'GET') {
             const query = new URLSearchParams({ action, ...params }).toString();
             res = await fetch(`${baseUrl}?${query}`);
           } else {
-            // POST 請求 (寫入)
             res = await fetch(baseUrl, {
               method: 'POST',
               body: JSON.stringify({ action, ...params })
@@ -113,11 +117,25 @@
           
           if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
           
-          const json = await res.json();
-          setStatus("CONNECTED");
-          
-          if (!json.success) throw new Error(json.error || "GAS Error");
-          return json;
+          // 先取文字，再試圖解析，以便捕捉 HTML 錯誤頁面
+          const text = await res.text();
+          try {
+            const json = JSON.parse(text);
+            
+            if (!json.success) {
+               throw new Error(json.error || "GAS 內部錯誤");
+            }
+
+            setStatus("CONNECTED");
+            return json;
+
+          } catch (jsonErr) {
+            console.error("非 JSON 回應:", text.substring(0, 200));
+            if (text.includes("<!DOCTYPE html>") || text.includes("Google Accounts")) {
+               throw new Error("權限錯誤：GAS 回傳了登入頁面 (HTML)。\n請至 Google Apps Script > 部署 > 管理部署 > 編輯，確認「誰有權存取」已設為「所有人 (Anyone)」。");
+            }
+            throw new Error("資料格式錯誤 (Invalid JSON)");
+          }
 
         } catch (e) {
           console.error("Fetch Failed:", e);
@@ -146,7 +164,6 @@
         setLoading(false);
       };
 
-      // --- 新增資料 ---
       const handleAdd = () => {
         if (data.length === 0) {
             alert("目前清單為空，無法複製欄位結構，請先確認 Google 試算表有標題列。");
@@ -155,16 +172,13 @@
         const template = { ...data[0] };
         Object.keys(template).forEach(k => template[k] = "");
         template['序號'] = "(系統自動產生)";
-        
         setEditingItem(template);
         setIsNewItem(true);
       };
 
-      // --- 儲存資料 ---
       const handleSave = async () => {
         setIsSaving(true);
         const action = isNewItem ? 'addData' : 'updateData';
-        
         const res = await callApi(action, { 
           type: activeTab, 
           data: JSON.stringify(editingItem) 
@@ -175,14 +189,13 @@
           setEditingItem(null);
           loadList(activeTab); 
         } else {
-          alert("儲存失敗：" + (res?.error || "未知錯誤"));
+          alert("儲存失敗：" + (res?.error || "請檢查權限"));
         }
         setIsSaving(false);
       };
 
       return (
         <div className="flex h-screen overflow-hidden">
-          {/* Config Modal */}
           {showConfig && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
               <div className="bg-white p-8 w-96 shadow-2xl">
