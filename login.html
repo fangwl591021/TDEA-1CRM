@@ -15,22 +15,20 @@
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-  <!-- Initializing Auth State -->
   <div id="loader" class="text-center space-y-6">
     <div id="profileBrief" class="hidden flex flex-col items-center space-y-3">
-      <img id="briefAvatar" class="w-20 h-20 border-4 border-white shadow-md" src="" />
+      <img id="briefAvatar" class="w-20 h-20 border-4 border-white shadow-md bg-gray-200" src="" />
       <p id="briefName" class="font-bold text-gray-700 text-lg"></p>
     </div>
-    <div class="w-12 h-12 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
-    <p class="text-gray-400 font-bold text-xs uppercase tracking-widest">Validating Session...</p>
+    <div class="w-10 h-10 border-4 border-gray-200 border-t-[#06C755] animate-spin mx-auto"></div>
+    <p class="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Validating LINE Profile...</p>
   </div>
 
-  <!-- Binding Form (Guest Only) -->
   <div id="bindForm" class="hidden w-full max-w-md bg-white border border-gray-200 shadow-sm overflow-hidden">
     <div class="p-8 border-b border-gray-100 text-center bg-[#F8F9FA]">
       <img id="avatar" class="w-24 h-24 border-4 border-white shadow-sm mx-auto mb-4" src="" />
       <h1 class="text-xl font-bold text-gray-800"><span id="name">用戶</span>，您好</h1>
-      <p class="text-xs text-gray-400 mt-2 tracking-widest uppercase">請完成身分綁定</p>
+      <p class="text-xs text-gray-400 mt-2 tracking-widest uppercase">請驗證身分以開通權限</p>
     </div>
     <div class="p-8 space-y-6">
       <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200">
@@ -39,16 +37,10 @@
         <button onclick="setType('general')" id="btn-guest" class="py-3 text-xs font-bold bg-white text-gray-400">一般</button>
       </div>
       <div class="space-y-4">
-        <div id="idGroup">
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號</label>
-          <input id="mid" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="如: Z1090001" />
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼</label>
-          <input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" />
-        </div>
+        <div id="idGroup"><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">會員編號</label><input id="mid" type="text" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="如: A001" /></div>
+        <div><label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">手機號碼</label><input id="phone" type="tel" class="w-full mt-1 border border-gray-200 px-4 py-3 text-sm input-focus" placeholder="0912345678" /></div>
       </div>
-      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90">確認綁定並登入</button>
+      <button onclick="submitBind()" id="submitBtn" class="w-full line-green-bg text-white py-4 font-bold text-sm shadow-sm active:opacity-90">確認綁定並登入系統</button>
     </div>
   </div>
 
@@ -64,7 +56,6 @@
         const p = await liff.getProfile();
         uid = p.userId;
         
-        // Show immediate feedback with profile
         document.getElementById('briefAvatar').src = p.pictureUrl;
         document.getElementById('briefName').textContent = p.displayName;
         document.getElementById('profileBrief').classList.remove('hidden');
@@ -72,28 +63,16 @@
         document.getElementById('avatar').src = p.pictureUrl;
         document.getElementById('name').textContent = p.displayName;
 
-        if (!CONFIG.GAS_URL) {
-          console.warn("No GAS_URL found.");
-          showBindingForm();
-          return;
-        }
+        if (!CONFIG.GAS_URL) { showForm(); return; }
 
         const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${uid}`).then(r => r.json());
-        
-        if (res.status === 'admin') {
-          window.location.href = "index.html";
-        } else if (res.status === 'member') {
-          window.location.href = "activity.html";
-        } else {
-          showBindingForm();
-        }
-      } catch (e) {
-        console.error(e);
-        showBindingForm();
-      }
+        if (res.status === 'admin') window.location.href = "/index.html";
+        else if (res.status === 'member') window.location.href = "/activity.html";
+        else showForm();
+      } catch (e) { showForm(); }
     };
 
-    function showBindingForm() {
+    function showForm() {
       document.getElementById('loader').classList.add('hidden');
       document.getElementById('bindForm').classList.remove('hidden');
       setType('association');
@@ -102,13 +81,13 @@
     function setType(t) {
       curType = t;
       ['assoc', 'vendor', 'guest'].forEach(id => document.getElementById('btn-' + id).className = "py-3 text-xs font-bold bg-white text-gray-400");
-      document.getElementById('btn-' + (t === 'association' ? 'assoc' : t === 'vendor' ? 'vendor' : 'guest')).className = "py-3 text-xs font-black line-green-bg text-white shadow-inner";
+      document.getElementById('btn-' + (t==='association'?'assoc':t==='vendor'?'vendor':'guest')).className = "py-3 text-xs font-black line-green-bg text-white shadow-inner";
       document.getElementById('idGroup').style.display = t === 'general' ? 'none' : 'block';
     }
 
     async function submitBind() {
       const tel = document.getElementById('phone').value.trim();
-      if (!tel) return alert("請輸入手機號碼");
+      if (!tel) return alert("請輸入手機");
       const btn = document.getElementById('submitBtn');
       btn.disabled = true; btn.textContent = "連線驗證中...";
       try {
@@ -116,7 +95,7 @@
           method: 'POST', 
           body: JSON.stringify({ action: 'bindMember', userId: uid, type: curType, memberId: document.getElementById('mid').value.trim(), phone: tel }) 
         }).then(r => r.json());
-        if (res.success) { alert("綁定成功！即將進入系統"); window.location.href = "activity.html"; }
+        if (res.success) { alert("綁定成功！即將進入系統"); window.location.href = "/activity.html"; }
         else { alert(res.message); btn.disabled = false; btn.textContent = "確認綁定並登入"; }
       } catch (e) { btn.disabled = false; }
     }
