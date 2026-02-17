@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TDEA CRM - Admin</title>
+  <title>TDEA CRM - Admin Console</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -22,10 +22,7 @@
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid #E5E7EB; }
     .detail-label { width: 150px; background-color: #F9FAFB; border-right: 1px solid #E5E7EB; padding: 12px; font-size: 12px; font-weight: 700; color: #4B5563; }
     .detail-input { width: 100%; padding: 8px 12px; font-size: 14px; border: none; outline: none; background: white; }
-    .detail-input:focus { background-color: #F0FDF4; }
     .collapsible-stats { transition: max-height 0.3s ease-in-out, opacity 0.2s; overflow: hidden; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-thumb { background: #D1D5DB; }
   </style>
 </head>
 <body>
@@ -64,18 +61,18 @@
         if (!CONFIG.GAS_URL) { setIsAuthed(true); loadDashboard(); return; }
         try {
           await liff.init({ liffId: LIFF_ID });
-          if (!liff.isLoggedIn()) { window.location.href = "login.html"; return; }
+          if (!liff.isLoggedIn()) { window.location.href = "/login.html"; return; }
           const p = await liff.getProfile();
           setUser(p);
-          const response = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${p.userId}`);
-          const res = await response.json();
+          const res = await fetch(`${CONFIG.GAS_URL}?action=check&userId=${p.userId}`).then(r => r.json());
+          // 🌟 強制檢查：非 admin 絕不准進入
           if (res.status === 'admin') { 
             setIsAuthed(true); 
             loadDashboard(); 
           } else { 
-            window.location.href = res.status === 'member' ? "activity.html" : "login.html"; 
+            window.location.href = "/login.html"; 
           }
-        } catch (e) { window.location.href = "login.html"; }
+        } catch (e) { window.location.href = "/login.html"; }
       };
 
       const loadDashboard = async () => {
@@ -91,12 +88,12 @@
         setLoading(false);
       };
 
-      if (!isAuthed) return <div className="h-screen flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Admin Validating...</div>;
+      if (!isAuthed) return <div className="h-screen flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Admin Authorization Required...</div>;
 
       return (
         <div className="flex h-screen overflow-hidden">
           <aside className={`sidebar-light flex flex-col shrink-0 z-20 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
-            <div className="h-16 flex items-center px-4 border-b border-gray-200">
+            <div className="h-16 flex items-center px-4 border-b border-gray-200 shrink-0">
               <div className="w-8 h-8 line-green-bg flex items-center justify-center shrink-0"><span className="text-white text-[10px] font-black">CRM</span></div>
               {!collapsed && <span className="ml-3 font-bold text-gray-700">管理中心</span>}
             </div>
@@ -116,7 +113,7 @@
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
               <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
               <div className="flex items-center space-x-3">
-                 <img id="headerAvatar" src={user?.pictureUrl} className="w-8 h-8 border border-gray-100" />
+                 <img src={user?.pictureUrl} className="w-8 h-8 border border-gray-100 bg-gray-50" />
                  <div className="text-right">
                    <div className="text-[10px] font-black text-[#06C755] leading-none">{user?.displayName}</div>
                    <div className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Administrator</div>
@@ -124,7 +121,7 @@
               </div>
             </header>
             <div className="flex-1 overflow-auto p-8">
-               {loading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse">Syncing Cloud Data...</div> :
+               {loading ? <div className="text-center p-20 text-gray-300 font-bold animate-pulse">Loading database records...</div> :
                 editing ? (
                   <div className="flex flex-col h-full animate-in fade-in">
                     <button onClick={() => setEditing(null)} className="mb-6 w-24 px-4 py-2 bg-white border border-gray-300 text-xs font-bold flex items-center hover:bg-gray-50"><Icon name="chevronLeft" size={14} className="mr-2" />返回</button>
@@ -136,20 +133,16 @@
                   <div className="flex flex-col space-y-8 h-full">
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold text-gray-800 tracking-tight">數據分析中心</h2>
-                      <button onClick={() => setDashExpanded(!dashExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text transition-colors">{dashExpanded ? "收合數據" : "展開數據"}<Icon name={dashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" /></button>
+                      <button onClick={() => setDashExpanded(!dashExpanded)} className="px-3 py-1.5 bg-white border border-gray-300 text-[11px] font-bold text-gray-500 flex items-center hover:line-green-text">{dashExpanded ? "收合數據" : "展開數據"}<Icon name={dashExpanded ? "chevronUp" : "chevronDown"} size={14} className="ml-2" /></button>
                     </div>
                     <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 collapsible-stats ${dashExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                       <StatCard title="本業會員" value={stats.association} /><StatCard title="廠商會員" value={stats.vendor} /><StatCard title="一般註冊" value={stats.general} /><StatCard title="活動總計" value={stats.activities} />
                     </div>
-                    <div className="flex-1 flex flex-col items-center justify-center opacity-10">
-                       <Icon name="home" size={100} />
-                       <p className="mt-4 font-black tracking-[1em]">MANAGEMENT</p>
-                    </div>
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 shadow-sm flex flex-col h-full">
-                    <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Database Table (Total {data.length} Records)</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 transition-all">+ 新增紀錄</button></div>
-                    <div className="overflow-auto flex-1"><table className="crm-table"><thead><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">操作項目</th></tr></thead><tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditing(r)} className="text-[#06C755] font-bold text-xs hover:underline">編輯詳細</button></td></tr>))}</tbody></table></div>
+                    <div className="p-4 border-b border-gray-200 flex justify-between bg-gray-50/30 items-center"><span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Master Record Table ({data.length} Rows)</span><button className="line-green-bg text-white px-5 py-1.5 text-xs font-bold active:scale-95 transition-all">+ 新增紀錄</button></div>
+                    <div className="overflow-auto flex-1"><table className="crm-table"><thead><tr>{data.length > 0 && Object.keys(data[0]).filter(k => k !== 'MAIL').slice(0, 10).map(k => <th key={k}>{k}</th>)}<th className="text-center sticky right-0 bg-gray-50 border-l border-gray-200">操作</th></tr></thead><tbody>{data.map((r, i) => (<tr key={i}>{Object.keys(r).filter(k => k !== 'MAIL').slice(0, 10).map((k, j) => <td key={j}>{String(r[k])}</td>)}<td className="text-center sticky right-0 bg-white border-l border-gray-200"><button onClick={() => setEditing(r)} className="text-[#06C755] font-bold text-xs hover:underline px-4 py-2 transition-colors">編輯詳細</button></td></tr>))}</tbody></table></div>
                   </div>
                 )}
             </div>
