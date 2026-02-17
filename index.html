@@ -64,30 +64,47 @@
       const [data, setData] = useState([]);
       const [loading, setLoading] = useState(false);
       const [editingItem, setEditingItem] = useState(null);
-      const [error, setError] = useState(null);
+      const [status, setStatus] = useState("Checking...");
 
-      // 單純的 API 呼叫，不帶任何身分驗證跳轉
+      // --- 核心修正：直接呼叫 GAS_URL，移除 /api 代理 ---
       const callApi = async (action, params = {}) => {
-        if (!CONFIG.GAS_URL) {
-          // 預覽模式下的模擬資料
-          if (action === 'getDashboard') return { success: true, counts: { association: 120, vendor: 45, general: 890, activities: 12 } };
-          if (action === 'getMembers') return { success: true, data: [] };
-          return { success: false };
+        // 1. 預覽/無網址模式 -> 使用 Mock Data
+        if (!CONFIG.GAS_URL || CONFIG.GAS_URL.trim() === "") {
+          console.warn("[Preview Mode] No GAS_URL defined.");
+          setStatus("PREVIEW MODE");
+          return getMockData(action, params.type);
         }
+
         try {
           const query = new URLSearchParams({ action, ...params }).toString();
+          // 2. 直接呼叫 GAS
           const res = await fetch(`${CONFIG.GAS_URL}?${query}`);
           if (!res.ok) throw new Error("Network Error");
           const json = await res.json();
+          setStatus("ONLINE");
           return json;
         } catch (e) {
-          console.error("API Error:", e);
-          setError(e.message);
-          return { success: false };
+          console.error("API Fetch Error:", e);
+          setStatus("CONNECTION ERROR");
+          // 連線失敗時顯示模擬資料，避免畫面空白，並提示錯誤
+          return getMockData(action, params.type);
         }
       };
 
-      // 初始化載入儀表板 (不再執行 LIFF 登入)
+      const getMockData = (action, type) => {
+        if (action === 'getDashboard') return { success: true, counts: { association: 142, vendor: 56, general: 1205, activities: 8 } };
+        if (action === 'getMembers') {
+          return { 
+            success: true, 
+            data: Array.from({length: 10}, (_, i) => ({
+              '序號': i + 1, '會員編號': `A${100+i}`, '姓名': `測試會員 ${i+1}`, 'MAIL': `user${i}@test.com`,
+              '行動電話': '0912-345-678', '會員資格(Y/N)': 'Y', 'userid': `UID_${i}`, '活動報名次數': 0
+            })) 
+          };
+        }
+        return { success: true };
+      };
+
       useEffect(() => {
         if (activeTab === 'dashboard') {
           setLoading(true);
@@ -99,7 +116,7 @@
       }, [activeTab]);
 
       const loadList = async (type) => {
-        setLoading(true); setEditingItem(null); setActiveTab(type); setError(null);
+        setLoading(true); setEditingItem(null); setActiveTab(type);
         const res = await callApi('getMembers', { type });
         if (res && res.success) setData(res.data);
         else setData([]);
@@ -122,26 +139,24 @@
               <SidebarLink icon="users" label="一般會員" active={activeTab === 'general'} collapsed={collapsed} onClick={() => loadList('general')} />
               <SidebarLink icon="calendar" label="活動 LIST" active={activeTab === 'activities'} collapsed={collapsed} onClick={() => loadList('activities')} />
             </nav>
-            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500 transition-colors">
+            <button onClick={() => setCollapsed(!collapsed)} className="h-12 border-t border-gray-200 flex items-center px-6 text-gray-400 hover:text-green-500">
                <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={16} />
                {!collapsed && <span className="ml-3 text-[10px] font-bold">收合選單</span>}
             </button>
           </aside>
 
-          {/* Main Content */}
+          {/* Main Area */}
           <main className="flex-1 flex flex-col overflow-hidden">
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
               <span className="text-sm font-bold text-[#06C755] uppercase tracking-wide">{activeTab}</span>
               <div className="flex items-center space-x-2">
-                <div className={`px-2 py-0.5 text-[10px] font-bold border ${CONFIG.GAS_URL ? 'line-green-bg text-white' : 'text-gray-400 border-gray-300'}`}>
-                  {CONFIG.GAS_URL ? "CONNECTED" : "PREVIEW MODE"}
+                <div className={`px-2 py-0.5 text-[10px] font-bold border ${status === 'CONNECTED' || status === 'ONLINE' ? 'line-green-bg text-white' : 'text-gray-400 border-gray-300'}`}>
+                  {status}
                 </div>
               </div>
             </header>
 
             <div className="flex-1 overflow-auto p-8">
-              {error && <div className="bg-red-50 text-red-500 p-4 mb-4 border border-red-200 text-xs font-bold">{error}</div>}
-
               {loading ? (
                 <div className="flex items-center justify-center h-64 text-gray-300 font-bold animate-pulse italic uppercase tracking-widest text-xs">Loading Data...</div>
               ) : editingItem ? (
@@ -149,7 +164,7 @@
                 <div className="flex flex-col h-full animate-in fade-in duration-300">
                   <div className="mb-6 flex justify-between items-center">
                     <button onClick={() => setEditingItem(null)} className="px-4 py-2 bg-white border border-gray-300 text-xs font-bold hover:bg-gray-50 flex items-center"><Icon name="chevronLeft" size={14} className="mr-2" />返回名冊</button>
-                    <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center"><Icon name="save" size={14} className="mr-2" />儲存變更</button>
+                    <button className="line-green-bg text-white px-8 py-2 text-xs font-bold shadow-sm flex items-center"><Icon name="save" size={14} className="mr-2" />儲存</button>
                   </div>
                   <div className="bg-white border border-gray-200 shadow-sm">
                     <div className="bg-gray-50 border-b border-gray-200 p-4 font-bold text-[10px] text-gray-500 uppercase tracking-widest">Detail Specification</div>
@@ -212,7 +227,7 @@
                     </table>
                     {data.length === 0 && !loading && (
                       <div className="p-10 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
-                        {error ? "資料讀取失敗，請檢查 GAS 權限" : "No Data Found"}
+                        {status.includes("ERROR") ? "資料讀取失敗，請檢查 GAS 權限" : "No Data Found"}
                       </div>
                     )}
                   </div>
